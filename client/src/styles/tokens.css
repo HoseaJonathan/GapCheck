@@ -1,0 +1,84 @@
+/*
+ * Gap Check design tokens — phase 1.
+ * Written before any screen so the mockup's look is enforced, not reconstructed
+ * page by page. The signature rule: sans for prose, MONO for every number,
+ * metric, label, and code fragment.
+ */
+:root {
+  /* Type */
+  --font-sans: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-metric: 3.25rem;
+
+  /* Colour — background near-white, surfaces flat, no shadows */
+  --bg: #fbfaf8;
+  --surface: #ffffff;
+  --ink: #14181c;
+  --ink-muted: #59636f;
+  --ink-faint: #8b95a1;
+
+  /* One deep green as the only accent */
+  --green: #1f5d45;
+  --green-hover: #184a37;
+  --green-soft: #e7efea;
+
+  /* Amber/rust for weakness and warning. Never red. */
+  --amber: #a2521c;
+  --amber-soft: #f8ece1;
+
+  /* Grey for locked, dimmed, zero states */
+  --locked: #a9aeb5;
+  --locked-soft: #f0efec;
+
+  /* Hairline rules instead of cards and shadows */
+  --rule: #e5e3de;
+  --rule-strong: #d3d0c9;
+
+  /* Code */
+  --code-bg: #14181c;
+  --code-ink: #e8e6e1;
+  --code-key: #8fbfa8;
+  --code-str: #d6b287;
+  --code-dim: #6b7682;
+
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
+  --space-4: 16px; --space-5: 24px; --space-6: 32px;
+  --space-7: 48px; --space-8: 64px;
+
+  --shell-max: 1180px;
+}
+
+/* Small uppercase mono with wide letter-spacing for section labels. */
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.label--ink { color: var(--ink-muted); }
+.label--amber { color: var(--amber); }
+.label--green { color: var(--green); }
+
+/* Every number, metric and code fragment is mono. */
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.metric {
+  font-family: var(--font-mono);
+  font-size: var(--text-metric);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+/* Unit at reduced size and weight. */
+.metric__unit { font-size: 0.4em; font-weight: 400; color: var(--ink-faint); margin-left: 2px; }

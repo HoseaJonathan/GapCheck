@@ -1,0 +1,21 @@
+{
+  "name": "gapcheck-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Gap Check prototype API — in-memory stub, no MongoDB / Judge0 yet",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "test": "node --test src/*.test.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
