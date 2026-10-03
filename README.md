@@ -1,3 +1,5 @@
+n
+
 # Gap Check — prototype (frontend + Express stub)
 
 Prototipe untuk skripsi *Pengembangan Aplikasi Web-Based Assessment Untuk
@@ -42,16 +44,16 @@ docs/DECISIONS.md           kontradiksi mockup vs BAB 3 + usulan revisi tabel
 
 ## Status per fase
 
-| Fase | Status |
-|---|---|
-| 0 Scaffold | sebagian — docker-compose Judge0 belum dibuat |
-| 1 Design token | selesai |
-| 2 Auth | JWT + bcrypt jalan, penyimpanan masih in-memory |
-| 3 Question bank | schema lengkap di seed, belum jadi model Mongoose |
-| 4 Diagnostic session | UI jalan, timer jalan, sesi belum dipersistensi |
-| 5 Judge0 | **stub** — `fakeJudge0()` meniru bentuk respons Judge0 |
-| 6 Classification | selesai dan teruji |
-| 7 Learning path | penugasan otomatis dari level, path ter-seed |
-| 8 Modules + progress | tampil, gating belum diberlakukan di server |
-| 9 Puzzle | tampil — **belum disetujui masuk scope** (lihat DECISIONS.md) |
-| 10 Testing | unit test selesai; matriks black box belum ditulis |
+| Fase                 | Status                                                              |
+| -------------------- | ------------------------------------------------------------------- |
+| 0 Scaffold           | sebagian — docker-compose Judge0 belum dibuat                      |
+| 1 Design token       | selesai                                                             |
+| 2 Auth               | JWT + bcrypt jalan, penyimpanan masih in-memory                     |
+| 3 Question bank      | schema lengkap di seed, belum jadi model Mongoose                   |
+| 4 Diagnostic session | UI jalan, timer jalan, sesi belum dipersistensi                     |
+| 5 Judge0             | **stub** — `fakeJudge0()` meniru bentuk respons Judge0     |
+| 6 Classification     | selesai dan teruji                                                  |
+| 7 Learning path      | penugasan otomatis dari level, path ter-seed                        |
+| 8 Modules + progress | tampil, gating belum diberlakukan di server                         |
+| 9 Puzzle             | tampil —**belum disetujui masuk scope** (lihat DECISIONS.md) |
+| 10 Testing           | unit test selesai; matriks black box belum ditulis                  |
