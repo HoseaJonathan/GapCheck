@@ -11,6 +11,8 @@ import sessionRoutes from './routes/sessions.js';
 import submissionRoutes from './routes/submissions.js';
 import resultRoutes from './routes/result.js';
 import progressRoutes from './routes/progress.js';
+import moduleRoutes from './routes/modules.js';
+import puzzleRoutes from './routes/puzzle.js';
 
 // Factory without listen() so tests can build an app per suite.
 export function createApp() {
@@ -29,6 +31,8 @@ export function createApp() {
   app.use(submissionRoutes);
   app.use(resultRoutes);
   app.use(progressRoutes);
+  app.use(moduleRoutes);
+  app.use(puzzleRoutes);
 
   app.use((req, res) => res.status(404).json({ error: 'Not Found', path: req.path }));
   app.use(errorHandler);
