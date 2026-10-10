@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useApi, api } from '../api.js';
 
 const NAV = [
@@ -12,6 +12,13 @@ const NAV = [
 export default function Shell() {
   const { data } = useApi(() => api.overview(), []);
   const streak = data?.puzzle?.streak_days ?? 0;
+  const navigate = useNavigate();
+  const initials = api.user?.profile?.initials ?? '··';
+
+  function logout() {
+    api.logout();
+    navigate('/login', { replace: true });
+  }
 
   return (
     <>
@@ -28,7 +35,8 @@ export default function Shell() {
           </nav>
           <div className="search"><span>Search</span><kbd>⌘K</kbd></div>
           <span className="chip">{streak}-DAY STREAK</span>
-          <div className="avatar">HJ</div>
+          <div className="avatar" title={api.user?.email}>{initials}</div>
+          <button type="button" className="btn--link label" onClick={logout}>KELUAR</button>
         </div>
       </header>
       <main><Outlet /></main>

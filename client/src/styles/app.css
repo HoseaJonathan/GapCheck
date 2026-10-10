@@ -160,8 +160,28 @@ table.data td.num { font-family: var(--font-mono); font-variant-numeric: tabular
 .week__day { width: 22px; height: 22px; border-radius: 4px; background: #262c33; }
 .week__day.is-on { background: var(--code-key); }
 
+/* ---- login ---- */
+.login-step {
+  border-top: 1px solid var(--rule); padding: var(--space-4) 0;
+  display: grid; grid-template-columns: 40px 1fr; gap: var(--space-4);
+}
+.login-panel { border-left: 1px solid var(--rule); padding-left: var(--space-7); }
+.field { display: flex; flex-direction: column; gap: var(--space-2); }
+.input {
+  font-family: var(--font-mono); font-size: var(--text-sm); color: var(--ink);
+  background: var(--surface); border: 1px solid var(--rule-strong); border-radius: 6px;
+  padding: 10px 12px; outline: 0;
+}
+.input::placeholder { color: var(--ink-faint); }
+.input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+.btn:disabled { background: var(--locked); cursor: not-allowed; }
+.login-bands { align-items: flex-start; }
+.btn--link { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
+
 @media (max-width: 900px) {
   .tiles { grid-template-columns: repeat(2, 1fr); }
   .split, .cols-2 { grid-template-columns: 1fr; }
+  .login-panel { border-left: 0; padding-left: 0; border-top: 1px solid var(--rule); padding-top: var(--space-6); }
+  .login-bands { flex-direction: column; }
   .assess__body { grid-template-columns: 1fr; }
 }
