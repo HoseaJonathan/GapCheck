@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Gap Check prototype API — in-memory stub, no MongoDB / Judge0 yet",
+  "description": "Gap Check API — Express + MongoDB",
   "main": "src/index.js",
   "scripts": {
-    "dev": "node --watch src/index.js",
-    "start": "node src/index.js",
-    "test": "node --test src/*.test.js"
+    "dev": "node --watch --env-file-if-exists=.env src/index.js",
+    "start": "node --env-file-if-exists=.env src/index.js",
+    "seed": "node --env-file-if-exists=.env src/seed/run.js",
+    "test": "node --test --test-concurrency=1 \"src/**/*.test.js\""
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -16,6 +17,11 @@
     "express": "^5.2.1",
     "express-validator": "^7.2.1",
     "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.24.5"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^11.3.0",
+    "supertest": "^7.3.1"
   }
 }

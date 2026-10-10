@@ -1,0 +1,8 @@
+services:
+  mongo:
+    image: mongo:7
+    ports: ["27017:27017"]
+    volumes: [gapcheck-mongo:/data/db]
+
+volumes:
+  gapcheck-mongo:
