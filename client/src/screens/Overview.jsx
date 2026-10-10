@@ -11,10 +11,16 @@ export default function Overview() {
       <section className="section">
         <h1>{data.headline}</h1>
         <p>
-          Skor tertimbang kamu <span className="mono">{data.weighted_score}%</span>. Semua angka di
-          halaman ini dihitung dari sesi diagnostik terakhir, bukan dari estimasi.
+          {data.weighted_score === null ? (
+            'Belum ada skor. Kerjakan diagnostik untuk melihat level dan jalur belajarmu.'
+          ) : (
+            <>
+              Skor tertimbang kamu <span className="mono">{data.weighted_score}%</span>. Semua angka di
+              halaman ini dihitung dari sesi diagnostik terakhir, bukan dari estimasi.
+            </>
+          )}
         </p>
-        <ScoreTrack score={data.weighted_score} />
+        {data.weighted_score !== null && <ScoreTrack score={data.weighted_score} />}
       </section>
 
       <hr className="rule" />
@@ -22,15 +28,23 @@ export default function Overview() {
       <section className="section split">
         <div>
           <div className="label label--ink">NEXT UP</div>
-          <h2 style={{ marginTop: 8 }}>{data.next_up.module.title}</h2>
-          <p style={{ marginTop: 8 }}>{data.next_up.reason}</p>
-          <div className="row">
-            <span className="label">BLOOM: {data.next_up.module.bloom_level.toUpperCase()}</span>
-            <span className="label">{data.next_up.module.estimated_minutes} MIN</span>
-          </div>
-          <div style={{ marginTop: 16 }}>
-            <Link className="btn" to={`/modules/${data.next_up.module._id}`}>Buka modul</Link>
-          </div>
+          {data.next_up ? (
+            <>
+              <h2 style={{ marginTop: 8 }}>{data.next_up.module.title}</h2>
+              <p style={{ marginTop: 8 }}>{data.next_up.reason}</p>
+              <div className="row">
+                <span className="label">BLOOM: {data.next_up.module.bloom_level.toUpperCase()}</span>
+                <span className="label">{data.next_up.module.estimated_minutes} MIN</span>
+              </div>
+              <div style={{ marginTop: 16 }}>
+                <Link className="btn" to={`/modules/${data.next_up.module._id}`}>Buka modul</Link>
+              </div>
+            </>
+          ) : (
+            <div style={{ marginTop: 8 }}>
+              <Link className="btn" to="/assessment">Mulai diagnostik</Link>
+            </div>
+          )}
         </div>
 
         <div>

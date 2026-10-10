@@ -8,6 +8,17 @@ export default function Result() {
   const { data, loading } = useApi(() => api.result(), []);
   if (loading || !data) return <Loading />;
 
+  // A user who has not finished a diagnostic has no result yet; every field below would be undefined.
+  if (data.result === null) {
+    return (
+      <div className="page">
+        <h1>Belum ada hasil diagnostik.</h1>
+        <p style={{ marginTop: 12 }}>Selesaikan satu sesi diagnostik dulu, lalu level dan jalur belajarmu akan muncul di sini.</p>
+        <div style={{ marginTop: 20 }}><Link className="btn" to="/assessment">Mulai diagnostik</Link></div>
+      </div>
+    );
+  }
+
   return (
     <div className="page">
       <div className="label label--ink">DIAGNOSTIC RESULT</div>

@@ -53,6 +53,10 @@ export const api = {
   modules: () => request('/modules'),
   module: (id) => request(`/modules/${id}`),
   puzzle: () => request('/puzzle'),
+  startSession: (kind = 'diagnostic') => request('/sessions', { method: 'POST', body: JSON.stringify({ kind }) }),
+  finishSession: (id) => request(`/sessions/${id}/finish`, { method: 'POST' }),
+  checkQuiz: (moduleId, index, answer) =>
+    request(`/modules/${moduleId}/quiz/${index}/check`, { method: 'POST', body: JSON.stringify({ answer }) }),
   submit: (payload) => request('/submit', { method: 'POST', body: JSON.stringify(payload) }),
 };
 

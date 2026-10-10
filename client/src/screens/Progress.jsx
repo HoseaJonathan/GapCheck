@@ -8,6 +8,17 @@ export default function Progress() {
   const { data, loading } = useApi(() => api.progress(), []);
   if (loading || !data) return <Loading />;
 
+  // No finished session yet: level/score are null, so render this before touching them.
+  if (data.weighted_score === null) {
+    return (
+      <div className="page">
+        <h1>Progress</h1>
+        <p style={{ marginTop: 12 }}>Belum ada data progres. Kerjakan diagnostik untuk mulai melacak skor dan topikmu.</p>
+        <div style={{ marginTop: 20 }}><Link className="btn" to="/assessment">Mulai diagnostik</Link></div>
+      </div>
+    );
+  }
+
   const worstLast = [...data.topic_accuracy].sort((a, b) => b.accuracy - a.accuracy);
   const weakest = worstLast.at(-1);
 
@@ -16,10 +27,12 @@ export default function Progress() {
       <h1>Progress</h1>
 
       <div className="tiles" style={{ marginTop: 'var(--space-6)' }}>
-        <Tile label="WEIGHTED SCORE" caption={`Naik ${data.delta_since_previous} sejak Diagnostic 2, ${data.delta_since_first} sejak tes pertama.`}>
-          <Metric value={data.weighted_score} unit="%" delta={data.delta_since_previous} />
+        <Tile label="WEIGHTED SCORE" caption={data.delta_since_previous === null
+          ? 'Baru satu sesi diagnostik — selisih muncul setelah sesi berikutnya.'
+          : `Naik ${data.delta_since_previous} sejak ${data.sessions.at(-2)?.label}, ${data.delta_since_first} sejak tes pertama.`}>
+          <Metric value={data.weighted_score} unit="%" delta={data.delta_since_previous ?? undefined} />
         </Tile>
-        <Tile label="LEVEL" caption={`${data.points_to_next_level} poin lagi ke Intermediate.`}>
+        <Tile label="LEVEL" caption={data.points_to_next_level ? `${data.points_to_next_level} poin lagi ke Intermediate.` : 'Sudah di atas ambang Intermediate.'}>
           <span className="metric" style={{ fontSize: 'var(--text-xl)' }}>{data.level.toUpperCase()}</span>
         </Tile>
         <Tile label="MODULES COMPLETED" caption={`Dari ${data.modules_total} modul di jalur kamu.`}>

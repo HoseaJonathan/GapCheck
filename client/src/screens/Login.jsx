@@ -14,7 +14,7 @@ const BANDS = [
   { level: 'INTERMEDIATE', range: '71–100', bloom: 'Apply · Analyze', path: 'Integrasi full-stack dan optimasi' },
 ];
 
-// Demo account seeded by server/src/index.js. Only offered in dev builds.
+// Demo account seeded by `npm run seed` (server/src/seed). Only offered in dev builds.
 const DEMO = { email: 'hosea@gapcheck.test', password: 'password123' };
 
 export default function Login() {
