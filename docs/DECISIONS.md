@@ -222,6 +222,8 @@ Daily Puzzle dalam scope.
 
 Jika satu soal dikirim lebih dari sekali dalam satu sesi, yang dihitung adalah
 **submission dengan poin tertinggi** untuk soal itu, bukan submission terakhir.
-Aturan ini sudah dipakai oleh perhitungan skor di server (fixture kanonik
-168/290 bergantung padanya) tetapi belum tertulis di narasi penilaian maupun
-flowchart Diagnostic Test BAB 3. Tulis bersama keputusan A1.
+Aturan ini sudah dipakai oleh perhitungan skor di server, tetapi belum tertulis
+di narasi penilaian maupun flowchart Diagnostic Test BAB 3. Fixture kanonik
+168/290 tidak bergantung padanya, karena sesi kanonik hanya berisi satu
+submission per soal; aturan ini baru menentukan skor pada sesi nyata ketika
+peserta mengirim ulang jawaban. Tulis bersama keputusan A1.

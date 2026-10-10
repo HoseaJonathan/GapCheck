@@ -14,6 +14,7 @@ status; kuis bernilai adalah sub-proyek 2).
 
 ## Menjalankan
 
+Butuh **Node.js ≥ 22.9** (skrip npm memakai `--env-file-if-exists`) dan Docker.
 Tiga langkah (MongoDB, server, klien):
 
 ```bash
@@ -22,6 +23,9 @@ cd server && cp .env.example .env && npm install && npm run seed && npm run dev 
 cd client && npm install && npm run dev                                # http://localhost:5173
 ```
 
+Rangkaian `a && b` di atas butuh Git Bash (atau shell POSIX lain). Di Windows
+PowerShell 5.1 operator `&&` tidak ada, jadi jalankan perintahnya satu per satu.
+
 Login demo (keduanya `password123`):
 
 - `hosea@gapcheck.test` — level beginner, 5 sesi asesmen (otomatis dipakai klien).
@@ -29,6 +33,15 @@ Login demo (keduanya `password123`):
 
 `npm run seed` mengosongkan lalu mengisi ulang database, jadi aman dijalankan
 berulang kali.
+
+### Sebelum sidang
+
+- [ ] Jalankan ulang `npm run seed` (di `server/`) tepat sebelum demo, supaya
+      data hosea kembali ke sesi kanonik 168/290.
+- [ ] Jangan membuka layar Assessment sebagai hosea sebelum atau saat demo hasil.
+      Setiap kunjungan membuka sesi baru; sesi itu bisa kedaluwarsa, selesai
+      otomatis, lalu menggantikan hasil kanonik di Result, Progress, dan Overview.
+      Untuk mendemokan asesmen, pakai akun nadia.
 
 ## Data demo
 
@@ -43,7 +56,7 @@ grafik riwayat punya lima titik. Sesi kelima adalah sesi nyata yang dihitung dar
 cd server && npm test
 ```
 
-90 test: fixture kanonik 168/290 = 57.93% → beginner, boundary value 40/41/70/71,
+105 test: fixture kanonik 168/290 = 57.93% → beginner, boundary value 40/41/70/71,
 partisi ekuivalensi 0 dan 100, sesi kosong, soal MCQ, run yang tidak selesai,
 model Mongoose, seed, auth, sesi asesmen (termasuk auto-finish saat waktu habis),
 modul, dan view hasil/progres. Test memakai `mongodb-memory-server`, sehingga
@@ -60,7 +73,8 @@ server/src/models/          model Mongoose: User, Question, Submission, Assessme
 server/src/services/        logika bisnis: sesi, soal, modul, analisis, view
 server/src/routes/          /auth, /questions, /sessions, /submissions, /result, /progress, /modules, /puzzle
 server/src/judge/           fakeJudge0.js — stub Judge0
-server/src/seed/            data contoh dan skrip `npm run seed`; field EXTRA ditandai komentar
+server/src/data/            puzzle.static.js — data Daily Puzzle statis (sampai keputusan A6)
+server/src/seed/            data contoh dan skrip `npm run seed`
 client/src/styles/tokens.css  design token (warna, skala tipografi, split sans/mono)
 client/src/screens/         Overview, Progress, Result, Module, Assessment, Puzzle
 docs/DECISIONS.md           kontradiksi mockup vs BAB 3 + usulan revisi tabel
