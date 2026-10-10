@@ -13,7 +13,10 @@ export default function ModuleScreen() {
 function ModuleRedirect() {
   const { data, loading } = useApi(() => api.overview(), []);
   if (loading || !data) return <Loading />;
-  return <Navigate replace to={data.next_up ? `/modules/${data.next_up.module._id}` : '/assessment'} />;
+  if (data.next_up) return <Navigate replace to={`/modules/${data.next_up.module._id}`} />;
+  // Only a learner without a level still needs the diagnostic; one with a level would just come back here.
+  if (data.level === null) return <Navigate replace to="/assessment" />;
+  return <div className="page"><p>Belum ada modul untuk jalur kamu.</p></div>;
 }
 
 function ModuleView({ id }) {
@@ -84,7 +87,8 @@ function ModuleView({ id }) {
               </div>
             );
           })}
-          {!m.body && <p>Materi modul ini belum ditulis di prototype.</p>}
+          {/* The schema defaults body to [], so an unwritten module arrives as an empty array, not undefined. */}
+          {!m.body?.length && <p>Materi modul ini belum ditulis di prototype.</p>}
         </div>
 
         {quiz && (

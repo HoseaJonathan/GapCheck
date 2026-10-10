@@ -40,10 +40,13 @@ export default function Overview() {
                 <Link className="btn" to={`/modules/${data.next_up.module._id}`}>Buka modul</Link>
               </div>
             </>
-          ) : (
+          ) : data.level === null ? (
             <div style={{ marginTop: 8 }}>
               <Link className="btn" to="/assessment">Mulai diagnostik</Link>
             </div>
+          ) : (
+            // Has a level but nothing to open: sending them back to the diagnostic would loop.
+            <p style={{ marginTop: 8 }}>Belum ada modul untuk jalur kamu.</p>
           )}
         </div>
 

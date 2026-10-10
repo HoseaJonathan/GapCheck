@@ -55,9 +55,12 @@ export default function Result() {
             </tr>
           </tbody>
         </table>
-        <p className="faint" style={{ fontSize: 'var(--text-sm)', marginTop: 12 }}>
-          <span className="mono">71 − {data.percentage} = {data.pointsToNextLevel}</span> poin lagi ke Intermediate.
-        </p>
+        {/* null means already Intermediate: there is no next level to count down to. */}
+        {data.pointsToNextLevel !== null && (
+          <p className="faint" style={{ fontSize: 'var(--text-sm)', marginTop: 12 }}>
+            <span className="mono">71 − {data.percentage} = {data.pointsToNextLevel}</span> poin lagi ke Intermediate.
+          </p>
+        )}
       </section>
 
       <hr className="rule" />
