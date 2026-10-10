@@ -15,7 +15,7 @@ export default function Assessment() {
   const [code, setCode] = useState('');
   const [dirty, setDirty] = useState(false);
   const [run, setRun] = useState(null);
-  const [left, setLeft] = useState(0);
+  const [left, setLeft] = useState(null);
 
   const questions = useMemo(() => data?.questions ?? [], [data]);
   const q = questions[index];
@@ -32,10 +32,10 @@ export default function Assessment() {
   useEffect(() => { if (data) setLeft(data.remaining_seconds); }, [data]);
   useEffect(() => {
     if (!data) return undefined;
-    const t = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000);
+    const t = setInterval(() => setLeft((s) => (s === null ? s : Math.max(0, s - 1))), 1000);
     return () => clearInterval(t);
   }, [data]);
-  useEffect(() => { if (data && left === 0) finish(); }, [data, left]);
+  useEffect(() => { if (left !== null && left <= 0) finish(); }, [left]);
   useEffect(() => { if (q) { setCode(q.base_code || ''); setChoice(null); setDirty(false); setRun(null); } }, [q]);
 
   if (loading || !q) return <Loading />;
@@ -74,7 +74,7 @@ export default function Assessment() {
             <span key={i} className={`dot${i < index ? ' is-done' : i === index ? ' is-current' : ''}`} />
           ))}
         </div>
-        <span className="mono" style={{ marginLeft: 'auto' }}>{mmss(left)}</span>
+        <span className="mono" style={{ marginLeft: 'auto' }}>{left === null ? "--:--" : mmss(left)}</span>
         <Link className="btn btn--ghost" to="/">Save and exit</Link>
       </header>
 
