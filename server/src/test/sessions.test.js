@@ -1,40 +1,20 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import bcrypt from 'bcryptjs';
 
 import User from '../models/User.js';
 import Question from '../models/Question.js';
 import AssessmentSession from '../models/AssessmentSession.js';
 import Submission from '../models/Submission.js';
-import { POINTS, scoreSubmission } from '../scoring.js';
+import { scoreSubmission } from '../scoring.js';
+import { seed } from '../seed/seed.js';
+import { questions as bank } from '../seed/data/questions.js';
 import { setupTestDb, login } from './helpers.js';
 
-/**
- * Local stand-in for the Task 6 question bank: same slugs, difficulty, type,
- * tags, Bloom level and test case counts, placeholder text. Table order is
- * session order, so inserting in this order also fixes the _id tie-break.
- * [slug, difficulty, type, tags, bloom, case count (code only)]
- */
-const BANK = [
-  ['var-let-const', 'easy', 'mcq', ['javascript'], 'remember'],
-  ['dom-query', 'easy', 'mcq', ['dom'], 'remember'],
-  ['array-map-return', 'easy', 'mcq', ['javascript', 'array-methods'], 'understand'],
-  ['strict-equality', 'easy', 'mcq', ['javascript'], 'remember'],
-  ['event-listener', 'easy', 'mcq', ['dom'], 'understand'],
-  ['react-props-render', 'medium', 'mcq', ['react'], 'understand'],
-  ['filter-active-users', 'medium', 'code', ['javascript', 'array-methods'], 'apply', 4],
-  ['express-route-params', 'medium', 'mcq', ['express', 'rest-api'], 'understand'],
-  ['toggle-class', 'medium', 'code', ['dom'], 'apply', 4],
-  ['array-utils', 'medium', 'code', ['javascript', 'array-methods'], 'understand', 5],
-  ['promise-all-prices', 'medium', 'code', ['async'], 'apply', 4],
-  ['group-by-key', 'hard', 'code', ['javascript'], 'analyze', 5],
-  ['questions-difficulty-filter', 'hard', 'code', ['express', 'rest-api'], 'apply', 5],
-  ['retry-with-backoff', 'hard', 'code', ['async'], 'analyze', 5],
-  ['async-error-middleware', 'hard', 'code', ['async', 'express'], 'analyze', 5],
-];
-const SLUGS = BANK.map(([slug]) => slug);
-const MCQ_KEY = 'b';
+const SLUGS = bank.map((q) => q.slug);
+// Every MCQ is answered with its own key; wrongKey is any other option.
+const keyOf = (slug) => bank.find((q) => q.slug === slug).correct_answer;
+const wrongKey = (slug) => bank.find((q) => q.slug === slug).options.find((o) => o.key !== keyOf(slug)).key;
 
 // "Submission kanonik" for code questions: [verdict, passed_cases]. MCQs are all answered correctly.
 const CANONICAL_RUNS = {
@@ -48,33 +28,7 @@ const CANONICAL_RUNS = {
   'async-error-middleware': ['Runtime Error', 0],
 };
 
-function buildQuestion([slug, difficulty, type, tags, bloom_level, caseCount]) {
-  const q = {
-    slug, title: slug, difficulty, type, tags, bloom_level,
-    points: POINTS[difficulty], description: `placeholder for ${slug}`,
-  };
-  if (type === 'mcq') {
-    q.options = [{ key: 'a', text: 'A' }, { key: 'b', text: 'B' }, { key: 'c', text: 'C' }];
-    q.correct_answer = MCQ_KEY;
-  } else {
-    // Exactly one hidden case, the last one, like every code question in the bank.
-    q.test_cases = Array.from({ length: caseCount }, (_, i) => ({
-      name: `case ${i + 1}`, stdin: String(i), expected_output: String(i), is_hidden: i === caseCount - 1,
-    }));
-  }
-  return q;
-}
-
-const { app } = setupTestDb(async () => {
-  const password_hash = await bcrypt.hash('password123', 4);
-  await User.create([
-    { username: 'hosea', email: 'hosea@gapcheck.test', password_hash },
-    { username: 'nadia', email: 'nadia@gapcheck.test', password_hash },
-  ]);
-  await Question.create(BANK.map(buildQuestion));
-  // The concurrency test relies on the partial unique index existing before the first insert.
-  await AssessmentSession.init();
-});
+const { app } = setupTestDb(seed);
 
 const auth = (token) => ({ Authorization: `Bearer ${token}` });
 const bySlug = async (slug) => Question.findOne({ slug }).lean();
@@ -138,7 +92,7 @@ describe('assessment sessions', () => {
 
     for (const q of body.questions) {
       if (q.type === 'mcq') {
-        const res = await submit(hosea, { session_id: sessionId, question_id: q._id, answer: MCQ_KEY });
+        const res = await submit(hosea, { session_id: sessionId, question_id: q._id, answer: keyOf(q.slug) });
         assert.equal(res.status, 201);
         assert.equal(res.body.verdict, 'Accepted');
         continue;
@@ -170,13 +124,13 @@ describe('assessment sessions', () => {
     const e1 = await bySlug('var-let-const');
     const e2 = await bySlug('dom-query');
 
-    const wrong = await submit(hosea, { session_id: sessionId, question_id: e1._id, answer: 'a' });
+    const wrong = await submit(hosea, { session_id: sessionId, question_id: e1._id, answer: wrongKey('var-let-const') });
     assert.equal(wrong.body.verdict, 'Wrong Answer');
     assert.equal(wrong.body.points_earned, 0);
-    await submit(hosea, { session_id: sessionId, question_id: e1._id, answer: MCQ_KEY });
+    await submit(hosea, { session_id: sessionId, question_id: e1._id, answer: keyOf('var-let-const') });
     // The reverse order too, so "latest submission wins" would fail this test.
-    await submit(hosea, { session_id: sessionId, question_id: e2._id, answer: MCQ_KEY });
-    await submit(hosea, { session_id: sessionId, question_id: e2._id, answer: 'c' });
+    await submit(hosea, { session_id: sessionId, question_id: e2._id, answer: keyOf('dom-query') });
+    await submit(hosea, { session_id: sessionId, question_id: e2._id, answer: wrongKey('dom-query') });
 
     const res = await finish(hosea, sessionId);
     assert.equal(res.body.result.earned, 20);
@@ -187,7 +141,7 @@ describe('assessment sessions', () => {
     const { body } = await start(hosea);
     const e1 = await bySlug('var-let-const');
 
-    const sub = await submit(nadia, { session_id: body.session._id, question_id: e1._id, answer: MCQ_KEY });
+    const sub = await submit(nadia, { session_id: body.session._id, question_id: e1._id, answer: keyOf('var-let-const') });
     assert.equal(sub.status, 403);
     assert.equal(sub.body.reason, 'forbidden_session');
 
@@ -198,7 +152,7 @@ describe('assessment sessions', () => {
 
   it('submit with session_id "abc"', async () => {
     const e1 = await bySlug('var-let-const');
-    const res = await submit(hosea, { session_id: 'abc', question_id: e1._id, answer: MCQ_KEY });
+    const res = await submit(hosea, { session_id: 'abc', question_id: e1._id, answer: keyOf('var-let-const') });
     assert.equal(res.status, 404);
     assert.equal(res.body.reason, 'invalid_id');
   });
@@ -212,7 +166,7 @@ describe('assessment sessions', () => {
     );
     const e1 = await bySlug('var-let-const');
 
-    const res = await submit(hosea, { session_id: sessionId, question_id: e1._id, answer: MCQ_KEY });
+    const res = await submit(hosea, { session_id: sessionId, question_id: e1._id, answer: keyOf('var-let-const') });
     assert.equal(res.status, 409);
     assert.equal(res.body.reason, 'session_expired');
 
@@ -238,7 +192,7 @@ describe('assessment sessions', () => {
     assert.equal(body.questions.length, 14);
     const e2 = await bySlug('dom-query');
 
-    const res = await submit(hosea, { session_id: body.session._id, question_id: e2._id, answer: MCQ_KEY });
+    const res = await submit(hosea, { session_id: body.session._id, question_id: e2._id, answer: keyOf('dom-query') });
     assert.equal(res.status, 400);
     assert.equal(res.body.reason, 'question_not_in_session');
   });
@@ -246,7 +200,7 @@ describe('assessment sessions', () => {
   it('unpublished mid-session still scored', async () => {
     const { body } = await start(hosea);
     const e1 = await bySlug('var-let-const');
-    await submit(hosea, { session_id: body.session._id, question_id: e1._id, answer: MCQ_KEY });
+    await submit(hosea, { session_id: body.session._id, question_id: e1._id, answer: keyOf('var-let-const') });
     await Question.updateOne({ _id: e1._id }, { $set: { is_published: false } });
 
     const res = await finish(hosea, body.session._id);
@@ -264,7 +218,7 @@ describe('assessment sessions', () => {
     }
 
     const e1 = await bySlug('var-let-const');
-    const sub = await submit(hosea, { session_id: res.body.session._id, question_id: e1._id, answer: MCQ_KEY });
+    const sub = await submit(hosea, { session_id: res.body.session._id, question_id: e1._id, answer: keyOf('var-let-const') });
     assert.equal(sub.status, 201);
     assert.equal('correct_answer' in sub.body, false);
   });
@@ -293,9 +247,9 @@ describe('assessment sessions', () => {
     const theirs = await start(nadia);
     const e1 = await bySlug('var-let-const');
     const e2 = await bySlug('dom-query');
-    await submit(hosea, { session_id: mine.body.session._id, question_id: e1._id, answer: 'a' });
-    await submit(hosea, { session_id: mine.body.session._id, question_id: e2._id, answer: MCQ_KEY });
-    await submit(nadia, { session_id: theirs.body.session._id, question_id: e1._id, answer: MCQ_KEY });
+    await submit(hosea, { session_id: mine.body.session._id, question_id: e1._id, answer: wrongKey('var-let-const') });
+    await submit(hosea, { session_id: mine.body.session._id, question_id: e2._id, answer: keyOf('dom-query') });
+    await submit(nadia, { session_id: theirs.body.session._id, question_id: e1._id, answer: keyOf('var-let-const') });
 
     const res = await request(app).get('/submissions').set(auth(hosea));
     assert.equal(res.status, 200);

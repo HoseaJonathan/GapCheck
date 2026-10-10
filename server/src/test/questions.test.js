@@ -3,31 +3,30 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 
 import Question from '../models/Question.js';
+import { seed } from '../seed/seed.js';
 import { setupTestDb } from './helpers.js';
 
-const base = { points: 10, bloom_level: 'apply', tags: ['js'], description: 'd' };
-
-const { app } = setupTestDb(async () => {
-  await Question.create([
-    { ...base, slug: 'hard-mcq', title: 'H', difficulty: 'hard', type: 'mcq', correct_answer: 'a',
-      options: [{ key: 'a', text: 'A' }] },
-    { ...base, slug: 'easy-code', title: 'E', difficulty: 'easy', type: 'code', correct_answer: 'x',
-      test_cases: [
-        { name: 'visible', stdin: '1', expected_output: '1' },
-        { name: 'secret', stdin: '2', expected_output: '2', is_hidden: true },
-      ] },
-    { ...base, slug: 'medium-mcq', title: 'M', difficulty: 'medium', type: 'mcq', correct_answer: 'b',
-      options: [{ key: 'b', text: 'B' }] },
-    { ...base, slug: 'draft', title: 'D', difficulty: 'easy', type: 'mcq', is_published: false },
-  ]);
-});
+const { app } = setupTestDb(seed);
 
 describe('GET /questions', () => {
   it('returns all published questions ordered easy, medium, hard', async () => {
-    const res = await request(app).get('/questions');
-    assert.equal(res.status, 200);
-    assert.deepEqual(res.body.questions.map((q) => q.slug), ['easy-code', 'medium-mcq', 'hard-mcq']);
-    assert.ok(res.body.session_duration_seconds > 0);
+    // An unpublished question must drop out without disturbing the order of the rest.
+    await Question.updateOne({ slug: 'toggle-class' }, { $set: { is_published: false } });
+    try {
+      const res = await request(app).get('/questions');
+      assert.equal(res.status, 200);
+      const { questions } = res.body;
+      assert.equal(questions.length, 14);
+      assert.equal(questions.some((q) => q.slug === 'toggle-class'), false);
+      const rank = { easy: 0, medium: 1, hard: 2 };
+      const ranks = questions.map((q) => rank[q.difficulty]);
+      assert.deepEqual(ranks, [...ranks].sort((a, b) => a - b));
+      assert.equal(questions[0].slug, 'var-let-const');
+      assert.equal(questions.at(-1).slug, 'async-error-middleware');
+      assert.ok(res.body.session_duration_seconds > 0);
+    } finally {
+      await Question.updateOne({ slug: 'toggle-class' }, { $set: { is_published: true } });
+    }
   });
 
   it('filters by a valid difficulty', async () => {
@@ -59,8 +58,8 @@ describe('GET /questions', () => {
 
   it('reports hidden_case_count for the code question', async () => {
     const res = await request(app).get('/questions');
-    const code = res.body.questions.find((q) => q.type === 'code');
+    const code = res.body.questions.find((q) => q.slug === 'filter-active-users');
     assert.equal(code.hidden_case_count, 1);
-    assert.equal(code.test_cases.length, 1);
+    assert.equal(code.test_cases.length, 3); // 4 cases in total, minus the hidden one
   });
 });

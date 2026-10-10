@@ -1,21 +1,15 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 
 import { JWT_SECRET } from '../config.js';
 import User from '../models/User.js';
+import { seed } from '../seed/seed.js';
 import { setupTestDb, login } from './helpers.js';
 
-const { app } = setupTestDb(async () => {
-  const password_hash = await bcrypt.hash('password123', 4);
-  await User.create([
-    { username: 'hosea', email: 'hosea@gapcheck.test', password_hash },
-    { username: 'second', email: 'second@gapcheck.test', password_hash },
-  ]);
-});
+const { app } = setupTestDb(seed);
 
 describe('POST /auth/login', () => {
   it('returns a token and the public user for valid credentials', async () => {
@@ -66,9 +60,9 @@ describe('GET /me', () => {
   });
 
   it('returns the user of the token, not always the first user', async () => {
-    const token = await login(app, 'second@gapcheck.test');
+    const token = await login(app, 'nadia@gapcheck.test');
     const res = await request(app).get('/me').set('Authorization', `Bearer ${token}`);
-    assert.equal(res.body.email, 'second@gapcheck.test');
+    assert.equal(res.body.email, 'nadia@gapcheck.test');
   });
 
   it('rejects a valid token whose user no longer exists with 401 unknown_user', async () => {
