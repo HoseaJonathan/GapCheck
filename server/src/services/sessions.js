@@ -94,6 +94,9 @@ export async function recordSubmission(userId, body, now = new Date()) {
   const run = question.type === 'mcq'
     ? { verdict: answer === question.correct_answer ? 'Accepted' : 'Wrong Answer', runtime_ms: 0, memory_kb: 0, cases: [] }
     : fakeJudge0(question, submitted_code);
+  // Hidden case names reveal what they probe, so only visible per-case results are kept;
+  // fakeJudge0 maps cases in test_cases order, hence the match by index. Counts still include them.
+  run.cases = run.cases.filter((_, i) => !question.test_cases?.[i]?.is_hidden);
 
   const record = {
     user_id: userId, question_id: question._id, session_id: session._id,

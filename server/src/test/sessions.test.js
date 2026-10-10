@@ -269,6 +269,25 @@ describe('assessment sessions', () => {
     assert.equal('correct_answer' in sub.body, false);
   });
 
+  it('code submission responses never list the hidden case', async () => {
+    const { body } = await start(hosea);
+    const code = await bySlug('filter-active-users');
+    const hidden = code.test_cases.find((c) => c.is_hidden);
+    const visibleCount = code.test_cases.length - 1;
+
+    const res = await submit(hosea, { session_id: body.session._id, question_id: code._id, submitted_code: 'x' });
+    assert.equal(res.status, 201);
+    assert.equal(res.body.total_cases, code.test_cases.length);
+    assert.equal(res.body.cases.length, visibleCount);
+    assert.ok(res.body.cases.every((c) => c.name !== hidden.name));
+
+    const list = await request(app).get('/submissions').set(auth(hosea));
+    const [stored] = list.body.submissions;
+    assert.equal(stored.total_cases, code.test_cases.length);
+    assert.equal(stored.cases.length, visibleCount);
+    assert.ok(stored.cases.every((c) => c.name !== hidden.name));
+  });
+
   it('GET /submissions lists only my submissions, newest first', async () => {
     const mine = await start(hosea);
     const theirs = await start(nadia);
