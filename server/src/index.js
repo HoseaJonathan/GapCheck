@@ -1,7 +1,4 @@
-import bcrypt from 'bcryptjs';
-
 import { PORT, MONGODB_URI } from './config.js';
-import { users } from './data/seed.js';
 import { connect } from './db.js';
 import { createApp } from './app.js';
 
@@ -14,8 +11,6 @@ const start = async () => {
     console.error(err.message);
     process.exit(1);
   }
-  // Temporary: routes still read the in-memory seed until they move to Mongo.
-  users[0].password_hash = await bcrypt.hash('password123', 10);
   createApp().listen(PORT, () => {
     console.log(`[gapcheck] API on http://localhost:${PORT}  (demo login: hosea@gapcheck.test / password123)`);
   });

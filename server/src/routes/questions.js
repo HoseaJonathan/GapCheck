@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { questions } from '../data/seed.js';
 import { SESSION_DURATION_SECONDS } from '../config.js';
+import { HttpError } from '../errors.js';
+import { listPublished, toSafeQuestion } from '../services/questions.js';
 
 const router = Router();
 const VALID_DIFFICULTY = ['easy', 'medium', 'hard'];
@@ -12,29 +13,16 @@ const VALID_DIFFICULTY = ['easy', 'medium', 'hard'];
  *   no parameter -> all published, valid value -> filtered,
  *   invalid value -> 400, and a rejected query never hangs the request.
  */
-router.get('/questions', (req, res) => {
+router.get('/questions', async (req, res) => {
   const { difficulty } = req.query;
-  let set = questions.filter((q) => q.is_published);
 
-  if (difficulty !== undefined) {
-    if (!VALID_DIFFICULTY.includes(difficulty)) {
-      return res.status(400).json({
-        error: 'Bad Request',
-        reason: 'invalid_difficulty',
-        allowed: VALID_DIFFICULTY,
-      });
-    }
-    set = set.filter((q) => q.difficulty === difficulty);
+  if (difficulty !== undefined && !VALID_DIFFICULTY.includes(difficulty)) {
+    throw new HttpError(400, 'invalid_difficulty', { allowed: VALID_DIFFICULTY });
   }
 
+  const set = await listPublished(difficulty);
   // Hidden test cases and correct answers never leave the server.
-  const safe = set.map(({ correct_answer, test_cases, ...q }) => ({
-    ...q,
-    test_cases: (test_cases || []).filter((c) => !c.is_hidden),
-    hidden_case_count: (test_cases || []).filter((c) => c.is_hidden).length,
-  }));
-
-  res.json({ questions: safe, session_duration_seconds: SESSION_DURATION_SECONDS });
+  res.json({ questions: set.map(toSafeQuestion), session_duration_seconds: SESSION_DURATION_SECONDS });
 });
 
 export default router;
