@@ -107,6 +107,10 @@ terpengaruh**.
 - **Terpengaruh.** Activity diagram Diagnostic Test, koleksi
   `assessment_sessions`, validitas skor (sesi tak berbatas waktu dan berbatas
   waktu tidak sebanding).
+- **Sudah diterapkan di kode.** Saat waktu habis, sesi di-*finish* otomatis oleh
+  server dan dinilai dari submission yang sudah masuk; submit setelah batas
+  waktu ditolak dengan 409. Aturan ini tinggal ditulis ke activity diagram dan
+  narasi BAB 3, beserta kasus uji boundary value pada batas waktu.
 
 ---
 
@@ -209,7 +213,15 @@ Daily Puzzle dalam scope.
 | Butir pemeriksaan | Status |
 |---|---|
 | Kode sesuai diagram UML | Belum — A4, A5, A7 belum punya diagram. |
-| Nama koleksi dan field sesuai tabel basis data | Belum — bagian C belum masuk dokumen. |
+| Nama koleksi dan field sesuai tabel basis data | Kode sudah mengikuti C1–C5 (model Mongoose di `server/src/models`); tinggal memasukkan bagian C ke dokumen BAB 3. |
 | UI sesuai mockup | Sebagian — enam layar utama sudah dibuat; editor kode masih textarea biasa, belum ada syntax highlighting. |
 | Tidak ada perilaku mockup tanpa bagian proposal | Belum — Puzzle, gating modul, timer, dan retake belum punya narasi. |
 | Setiap kebutuhan punya kasus uji black box | Sebagian — validasi `?difficulty=` dan 401 sudah diuji; matriks equivalence partitioning dan boundary value analysis belum ditulis. |
+
+### Aturan penilaian yang harus masuk narasi BAB 3
+
+Jika satu soal dikirim lebih dari sekali dalam satu sesi, yang dihitung adalah
+**submission dengan poin tertinggi** untuk soal itu, bukan submission terakhir.
+Aturan ini sudah dipakai oleh perhitungan skor di server (fixture kanonik
+168/290 bergantung padanya) tetapi belum tertulis di narasi penilaian maupun
+flowchart Diagnostic Test BAB 3. Tulis bersama keputusan A1.
