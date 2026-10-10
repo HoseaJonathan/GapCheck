@@ -7,6 +7,7 @@ import { CLIENT_ORIGIN } from './config.js';
 import { errorHandler } from './middleware/errors.js';
 import authRoutes from './routes/auth.js';
 import questionRoutes from './routes/questions.js';
+import sessionRoutes from './routes/sessions.js';
 import submissionRoutes from './routes/submissions.js';
 import resultRoutes from './routes/result.js';
 import progressRoutes from './routes/progress.js';
@@ -24,6 +25,7 @@ export function createApp() {
 
   app.use(authRoutes);
   app.use(questionRoutes);
+  app.use(sessionRoutes);
   app.use(submissionRoutes);
   app.use(resultRoutes);
   app.use(progressRoutes);
