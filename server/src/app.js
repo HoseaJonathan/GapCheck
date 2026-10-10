@@ -34,7 +34,8 @@ export function createApp() {
   app.use(moduleRoutes);
   app.use(puzzleRoutes);
 
-  app.use((req, res) => res.status(404).json({ error: 'Not Found', path: req.path }));
+  // reason keeps the { error, reason } shape every other error has; path helps spot a typo in the URL.
+  app.use((req, res) => res.status(404).json({ error: 'Not Found', reason: 'not_found', path: req.path }));
   app.use(errorHandler);
 
   return app;

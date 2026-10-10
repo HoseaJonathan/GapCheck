@@ -90,6 +90,13 @@ test('bloomBreakdown unlocks evaluate/create at intermediate; empty level -> nul
   assert.deepEqual([b[0].accuracy, b[0].reached], [null, false]);
 });
 
+test('bloomBreakdown: a level with questions but 0 accuracy is not reached', () => {
+  // Spec section 3: reached = accuracy > 0, so sitting a level without earning a point does not count.
+  const qs = [{ _id: 'a', points: 30, bloom_level: 'analyze' }];
+  const b = bloomBreakdown(qs, [{ question_id: 'a', points_earned: 0 }], 'beginner');
+  assert.deepEqual([b[3].accuracy, b[3].reached], [0, false]);
+});
+
 test('acceptanceRate', () => {
   assert.equal(acceptanceRate([]), 0);
   assert.equal(acceptanceRate(subs), 0.67); // 10 dari 15 Accepted

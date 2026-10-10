@@ -74,6 +74,19 @@ export async function startSession(userId, kind, now = new Date()) {
   return { session, questions: published.map(toSafeQuestion), remaining_seconds: remainingSeconds(session, now), created: true };
 }
 
+const stripWhitespace = (s) => s.replace(/\s/g, '');
+
+/**
+ * fakeJudge0 accepts any long enough code, and some starter templates are long
+ * enough on their own, so submitting the template untouched would be graded
+ * Accepted. It is judged as empty instead. Whitespace is ignored so reindenting
+ * or a different line ending does not turn the template into an answer.
+ */
+function isUnchangedTemplate(code, question) {
+  return typeof code === 'string' && typeof question.base_code === 'string'
+    && stripWhitespace(code) === stripWhitespace(question.base_code);
+}
+
 /** Grades one answer inside a session; checks run in a fixed order so each failure has one reason. */
 export async function recordSubmission(userId, body, now = new Date()) {
   const { session_id, question_id, submitted_code, answer, language_id = 63 } = body || {};
@@ -93,7 +106,7 @@ export async function recordSubmission(userId, body, now = new Date()) {
 
   const run = question.type === 'mcq'
     ? { verdict: answer === question.correct_answer ? 'Accepted' : 'Wrong Answer', runtime_ms: 0, memory_kb: 0, cases: [] }
-    : fakeJudge0(question, submitted_code);
+    : fakeJudge0(question, isUnchangedTemplate(submitted_code, question) ? '' : submitted_code);
   // Hidden case names reveal what they probe, so only visible per-case results are kept;
   // fakeJudge0 maps cases in test_cases order, hence the match by index. Counts still include them.
   run.cases = run.cases.filter((_, i) => !question.test_cases?.[i]?.is_hidden);

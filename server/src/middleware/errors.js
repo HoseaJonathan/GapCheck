@@ -18,6 +18,14 @@ export function errorHandler(err, req, res, next) {
   if (err?.code === 11000) {
     return res.status(409).json({ error: 'Conflict', reason: 'duplicate' });
   }
+  // express.json() rejects a broken body before any route runs; that is the client's mistake, not a 500.
+  if (err?.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Bad Request', reason: 'invalid_json' });
+  }
+  // Other body-parser rejections (too large, bad charset, ...) carry their own 4xx status.
+  if (Number.isInteger(err?.status) && err.status >= 400 && err.status <= 499) {
+    return res.status(err.status).json({ error: STATUS_CODES[err.status], reason: err.type || 'bad_request' });
+  }
   // Stack stays server-side; clients only get a generic reason.
   console.error(err);
   return res.status(500).json({ error: 'Internal Server Error', reason: 'internal' });

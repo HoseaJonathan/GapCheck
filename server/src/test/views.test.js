@@ -1,15 +1,30 @@
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 
+import { JWT_SECRET } from '../config.js';
+import AssessmentSession from '../models/AssessmentSession.js';
 import Module from '../models/Module.js';
+import Question from '../models/Question.js';
+import User from '../models/User.js';
 import { seed } from '../seed/seed.js';
+import { questions as bank } from '../seed/data/questions.js';
 import { setupTestDb, login } from './helpers.js';
 
 const { app } = setupTestDb(seed);
 
 const auth = (token) => ({ Authorization: `Bearer ${token}` });
 const get = (token, path) => request(app).get(path).set(auth(token));
+const post = (token, path, body) => request(app).post(path).set(auth(token)).send(body);
+
+const FALLBACK_REASON = 'Modul berikutnya di jalur belajar kamu.';
+
+/** A throwaway user signed in by token, so these cases never touch hosea or nadia. */
+async function tempUser(name, level) {
+  const user = await User.create({ username: name, email: `${name}@gapcheck.test`, password_hash: 'x', level });
+  return { user, token: jwt.sign({ sub: String(user._id), username: name }, JWT_SECRET) };
+}
 
 describe('result, progress and overview computed from the database', () => {
   let hosea;
@@ -106,6 +121,8 @@ describe('result, progress and overview computed from the database', () => {
     const res = await get(nadia, '/overview');
     assert.equal(res.status, 200);
     assert.equal(res.body.next_up, null);
+    // level null is what tells the client to offer the diagnostic instead of a module.
+    assert.equal(res.body.level, null);
     assert.equal(res.body.headline, 'Mulai dengan asesmen diagnostik.');
     assert.equal(res.body.weighted_score, null);
     assert.deepEqual(res.body.in_progress, []);
@@ -120,10 +137,92 @@ describe('result, progress and overview computed from the database', () => {
     }
   });
 
+  it('GET /result reports the stored session snapshot, not a recomputation', async () => {
+    const user = await User.findOne({ email: 'hosea@gapcheck.test' });
+    const session = await AssessmentSession.findOne({ user_id: user._id, 'question_ids.0': { $exists: true } });
+    const original = session.result.toObject();
+    // Editing the bank after a sitting must not rewrite that sitting's score (spec: result is a snapshot).
+    await AssessmentSession.updateOne(
+      { _id: session._id },
+      { $set: { result: { earned: 150, possible: 280, percentage: 53.57, level: 'beginner' } } },
+    );
+    try {
+      const res = await get(hosea, '/result');
+      assert.equal(res.body.earnedPoints, 150);
+      assert.equal(res.body.possiblePoints, 280);
+      assert.equal(res.body.percentage, 53.57);
+      assert.equal(res.body.level, 'beginner');
+      assert.equal(res.body.pointsToNextLevel, 17.4);
+    } finally {
+      await AssessmentSession.updateOne({ _id: session._id }, { $set: { result: original } });
+    }
+  });
+
+  it('next_up falls back to the first open path module when the weakest topic has none', async () => {
+    const { user, token } = await tempUser('fallback-topic', 'beginner');
+    // One dom question and no answer: dom is the weakest topic, and the beginner path has no dom module.
+    const dom = await Question.findOne({ slug: 'dom-query' });
+    await AssessmentSession.create({
+      user_id: user._id, kind: 'diagnostic', status: 'finished', question_ids: [dom._id],
+      started_at: new Date(), finished_at: new Date(),
+      result: { earned: 0, possible: 10, percentage: 0, level: 'beginner' },
+    });
+
+    const res = await get(token, '/overview');
+    assert.equal(res.status, 200);
+    assert.equal(res.body.next_up.module.order, 1);
+    assert.equal(res.body.next_up.reason, FALLBACK_REASON);
+  });
+
+  it('next_up falls back to the path when there is no analysable topic but there is a level', async () => {
+    const { token } = await tempUser('fallback-level', 'beginner');
+    const res = await get(token, '/overview');
+    assert.equal(res.body.next_up.module.order, 1);
+    assert.equal(res.body.next_up.reason, FALLBACK_REASON);
+  });
+
+  it('next_up stays null on a path with no modules', async () => {
+    const { token } = await tempUser('empty-path', 'intermediate');
+    const res = await get(token, '/overview');
+    assert.equal(res.status, 200);
+    assert.equal(res.body.level, 'intermediate');
+    assert.equal(res.body.next_up, null);
+  });
+
   it('views require a token', async () => {
     for (const path of ['/result', '/progress', '/overview', '/puzzle']) {
       const res = await request(app).get(path);
       assert.equal(res.status, 401, path);
     }
+  });
+
+  // Last on purpose: it gives nadia a finished session, which the cases above assume she lacks.
+  it('nadia end to end: start, submit, finish, then every view is populated', async () => {
+    const started = await post(nadia, '/sessions', { kind: 'diagnostic' });
+    assert.equal(started.status, 201);
+    const sessionId = started.body.session._id;
+
+    for (const q of started.body.questions) {
+      const body = q.type === 'mcq'
+        ? { session_id: sessionId, question_id: q._id, answer: bank.find((b) => b.slug === q.slug).correct_answer }
+        : { session_id: sessionId, question_id: q._id, submitted_code: q.base_code };
+      const res = await post(nadia, '/submit', body);
+      assert.equal(res.status, 201, q.slug);
+    }
+    const finished = await post(nadia, `/sessions/${sessionId}/finish`);
+    assert.equal(finished.status, 200);
+
+    const result = await get(nadia, '/result');
+    assert.notEqual(result.body.result, null);
+    assert.equal(result.body.session_id, sessionId);
+    assert.equal(result.body.percentage, finished.body.result.percentage);
+
+    const progress = await get(nadia, '/progress');
+    assert.equal(progress.body.sessions.length, 1);
+    assert.notEqual(progress.body.weighted_score, null);
+
+    const overview = await get(nadia, '/overview');
+    assert.notEqual(overview.body.weighted_score, null);
+    assert.equal(overview.body.level, finished.body.result.level);
   });
 });

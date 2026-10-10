@@ -74,11 +74,10 @@ export function bloomBreakdown(questions = [], best = [], level) {
     const qs = questions.filter((q) => q.bloom_level === bloom);
     const possible = qs.reduce((n, q) => n + Number(q.points ?? 0), 0);
     const earned = qs.reduce((n, q) => n + (earnedBy.get(String(q._id)) ?? 0), 0);
-    const entry = {
-      level: bloom,
-      accuracy: possible === 0 ? null : round2(earned / possible),
-      reached: qs.length > 0 && !locked,
-    };
+    const accuracy = possible === 0 ? null : round2(earned / possible);
+    // Spec section 3: a level is reached by earning on it, not merely by being asked it.
+    // A locked level keeps its lock fields alongside, so the client can still say why it is closed.
+    const entry = { level: bloom, accuracy, reached: accuracy !== null && accuracy > 0 };
     if (locked) {
       entry.locked = true;
       entry.unlock_hint = 'Opens at Intermediate';

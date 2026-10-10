@@ -7,7 +7,7 @@ import AssessmentSession from '../models/AssessmentSession.js';
 import Progress from '../models/Progress.js';
 import Submission from '../models/Submission.js';
 import User from '../models/User.js';
-import { loadLatestAnalysis, pickModuleForTopic } from './analysis.js';
+import { firstOpenModule, loadLatestAnalysis, pickModuleForTopic } from './analysis.js';
 import { OUTLINE, loadPath, progressMap, stepsWithCounts, withProgress } from './modules.js';
 
 const INTERMEDIATE_THRESHOLD = THRESHOLDS.beginner + 1;
@@ -44,10 +44,29 @@ function topicsWithCallout(topics, story, modules, progress) {
   return [...topics.slice(0, -1), { ...weakest, callout: { text: story.gaps.at(-1), module_id: module._id } }];
 }
 
+/**
+ * The headline numbers come from the result stored at finish (spec: a snapshot,
+ * so editing the bank later never rewrites a past sitting). The per-difficulty
+ * table stays live because the snapshot does not keep it. pointsToNextLevel is
+ * rederived from the snapshot so it always matches the percentage shown.
+ */
+function snapshotScore(live, snap) {
+  if (!snap?.level) return live;
+  return {
+    ...live,
+    earnedPoints: snap.earned,
+    possiblePoints: snap.possible,
+    percentage: snap.percentage,
+    level: snap.level,
+    pointsToNextLevel: pointsToNext(snap),
+  };
+}
+
 export async function getResult(userId) {
   const analysis = await loadLatestAnalysis(userId);
   if (!analysis) return { result: null };
-  const { session, questions, best, topics, score } = analysis;
+  const { session, questions, best, topics } = analysis;
+  const score = snapshotScore(analysis.score, session.result);
 
   const [user, { path, modules }] = await Promise.all([requireUser(userId), loadPath(score.level)]);
   const progress = await progressMap(userId, modules);
@@ -131,6 +150,23 @@ function headline(latest) {
     : `Kamu ${points} poin dari ${NEXT_LEVEL_LABEL[latest.level]}.`;
 }
 
+/**
+ * The weakest topic's module when there is one, otherwise the first open module
+ * on the path. The reason names the topic only when the topic picked the module,
+ * so the learner is never told a module covers a gap it does not cover.
+ */
+function nextUp(weakest, modules, progress) {
+  const byTopic = weakest ? pickModuleForTopic(modules, progress, weakest) : null;
+  if (byTopic) {
+    return {
+      module: withProgress(byTopic, progress),
+      reason: `Dipilih karena topik ${weakest} adalah topik terlemah di diagnostik terakhir kamu.`,
+    };
+  }
+  const onPath = firstOpenModule(modules, progress);
+  return onPath && { module: withProgress(onPath, progress), reason: 'Modul berikutnya di jalur belajar kamu.' };
+}
+
 export async function getOverview(userId) {
   const user = await requireUser(userId);
   const [sessions, analysis, { path, modules }, open] = await Promise.all([
@@ -143,18 +179,12 @@ export async function getOverview(userId) {
   const progress = await progressMap(userId, modules);
   const latest = sessions.at(-1)?.result ?? null;
 
-  const weakest = analysis?.topics.at(-1)?.topic;
-  const next = weakest ? pickModuleForTopic(modules, progress, weakest) : null;
-
   return {
     headline: headline(latest),
     weighted_score: latest?.percentage ?? null,
     band: BAND,
     level: user.level,
-    next_up: next && {
-      module: withProgress(next, progress),
-      reason: `Dipilih karena topik ${weakest} adalah topik terlemah di diagnostik terakhir kamu.`,
-    },
+    next_up: nextUp(analysis?.topics.at(-1)?.topic, modules, progress),
     // A progress row whose module was deleted has nothing to show.
     in_progress: open
       .filter((p) => p.module_id)

@@ -43,3 +43,16 @@ export function pickModuleForTopic(modules, progressByModule, topic) {
     ?? onTopic[0]
     ?? null;
 }
+
+/**
+ * First module (by order) on the path the learner has not completed, or null.
+ * Next up falls back to this when the weakest topic has no module (or there is
+ * no analysable topic yet), so a learner with a path is never left without a
+ * next step just because their gap is not covered by a module.
+ */
+export function firstOpenModule(modules, progressByModule) {
+  return [...modules]
+    .sort((a, b) => a.order - b.order)
+    .find((m) => progressByModule.get(String(m._id))?.state !== 'completed')
+    ?? null;
+}

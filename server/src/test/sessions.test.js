@@ -242,6 +242,20 @@ describe('assessment sessions', () => {
     assert.ok(stored.cases.every((c) => c.name !== hidden.name));
   });
 
+  it('unchanged starter code earns nothing', async () => {
+    const { body } = await start(hosea);
+    const q = body.questions.find((x) => x.slug === 'retry-with-backoff');
+    // Long enough to pass fakeJudge0's length heuristic, so only the template check stops it.
+    assert.ok(q.base_code.replace(/\s/g, '').length > 120);
+
+    // Indentation and line endings differ from the template, which must not make it count as an answer.
+    const submitted_code = `  ${q.base_code.replace(/\n/g, '\r\n')}\n\n`;
+    const res = await submit(hosea, { session_id: body.session._id, question_id: q._id, submitted_code });
+    assert.equal(res.status, 201);
+    assert.notEqual(res.body.verdict, 'Accepted');
+    assert.equal(res.body.points_earned, 0);
+  });
+
   it('GET /submissions lists only my submissions, newest first', async () => {
     const mine = await start(hosea);
     const theirs = await start(nadia);
