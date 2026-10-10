@@ -68,6 +68,15 @@ describe('seed', () => {
     assert.equal(tags.has('syntax') || tags.has('validation'), false);
   });
 
+  it('pins every MCQ answer key', async () => {
+    const expected = {
+      'var-let-const': 'c', 'dom-query': 'b', 'array-map-return': 'd', 'strict-equality': 'c',
+      'event-listener': 'a', 'react-props-render': 'b', 'express-route-params': 'c',
+    };
+    const mcqs = await Question.find({ type: 'mcq' }).select('+correct_answer').lean();
+    assert.deepEqual(Object.fromEntries(mcqs.map((q) => [q.slug, q.correct_answer])), expected);
+  });
+
   it('builds paths and modules so that async has 3 modules, rest-api 1, react 0', async () => {
     const beginner = await LearningPath.findOne({ level: 'beginner' }).lean();
     assert.equal(beginner.title, 'REST API dan React');

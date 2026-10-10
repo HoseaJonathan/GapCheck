@@ -10,21 +10,29 @@ const { app } = setupTestDb(seed);
 
 describe('GET /questions', () => {
   it('returns all published questions ordered easy, medium, hard', async () => {
-    // An unpublished question must drop out without disturbing the order of the rest.
+    // Seeded _id order already equals difficulty order, so add an easy question with the
+    // largest _id: only the difficulty sort can put it before the medium ones.
+    const late = await Question.create({
+      slug: 'late-easy', title: 'Late easy', difficulty: 'easy', points: 10, type: 'mcq',
+      bloom_level: 'remember', tags: ['javascript'], description: 'd',
+      options: [{ key: 'a', text: 'A' }], correct_answer: 'a',
+    });
     await Question.updateOne({ slug: 'toggle-class' }, { $set: { is_published: false } });
     try {
       const res = await request(app).get('/questions');
       assert.equal(res.status, 200);
       const { questions } = res.body;
-      assert.equal(questions.length, 14);
+      assert.equal(questions.length, 15); // 15 seeded - 1 unpublished + 1 late easy
       assert.equal(questions.some((q) => q.slug === 'toggle-class'), false);
       const rank = { easy: 0, medium: 1, hard: 2 };
       const ranks = questions.map((q) => rank[q.difficulty]);
-      assert.deepEqual(ranks, [...ranks].sort((a, b) => a - b));
-      assert.equal(questions[0].slug, 'var-let-const');
-      assert.equal(questions.at(-1).slug, 'async-error-middleware');
+      assert.deepEqual(ranks, [...ranks].sort((x, y) => x - y));
+      const slugs = questions.map((q) => q.slug);
+      assert.ok(slugs.indexOf('late-easy') < slugs.indexOf('react-props-render'));
+      assert.equal(slugs[5], 'late-easy'); // after the five seeded easy questions (_id tie-break)
       assert.ok(res.body.session_duration_seconds > 0);
     } finally {
+      await Question.deleteOne({ _id: late._id });
       await Question.updateOne({ slug: 'toggle-class' }, { $set: { is_published: true } });
     }
   });

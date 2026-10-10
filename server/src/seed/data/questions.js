@@ -87,7 +87,7 @@ export const questions = [
       { key: 'c', text: 'Teks "0" di dalam span' },
       { key: 'd', text: 'Error karena boolean tidak bisa dirender' },
     ],
-    correct_answer: 'c',
+    correct_answer: 'b',
   }),
   code({
     slug: 'filter-active-users', title: 'Filter pengguna aktif',
