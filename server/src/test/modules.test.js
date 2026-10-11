@@ -14,12 +14,13 @@ const auth = (token) => ({ Authorization: `Bearer ${token}` });
 describe('modules', () => {
   let hosea;
   let nadia;
-  let m04;
+  // The try/catch module (order 4 before the path was filled in, order 3 now): its first quiz key is 'b'.
+  let tryCatch;
 
   before(async () => {
     hosea = await login(app, 'hosea@gapcheck.test');
     nadia = await login(app, 'nadia@gapcheck.test');
-    m04 = await Module.findOne({ order: 4 }).lean();
+    tryCatch = await Module.findOne({ title: 'Kenapa try/catch tidak menangkap error Promise' }).lean();
   });
 
   const check = (token, id, index, answer) =>
@@ -38,43 +39,44 @@ describe('modules', () => {
   });
 
   it('GET /modules/:id returns the module, its siblings and no answer key', async () => {
-    const res = await request(app).get(`/modules/${m04._id}`).set(auth(hosea));
+    const res = await request(app).get(`/modules/${tryCatch._id}`).set(auth(hosea));
     assert.equal(res.status, 200);
     const { module, siblings } = res.body;
 
-    assert.equal(module.body.length, 4);
+    assert.equal(module.body.length, 7);
+    assert.equal(module.order, 3);
     assert.ok(module.quiz[0].question);
     assert.equal('correct_answer' in module.quiz[0], false);
     assert.equal(JSON.stringify(res.body).includes('correct_answer'), false);
     assert.equal(module.flagged_by_diagnostic, true);
     assert.equal(module.progress_percent, 0);
-    assert.deepEqual(siblings.map((s) => s.order), [1, 2, 4, 7]);
-    assert.deepEqual(siblings.map((s) => s.progress_percent), [100, 60, 0, 0]);
+    assert.deepEqual(siblings.map((s) => s.order), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    assert.deepEqual(siblings.map((s) => s.progress_percent), [100, 50, 0, 0, 0, 0, 0, 0, 0]);
   });
 
   it('quiz check grades without revealing the key', async () => {
-    const right = await check(hosea, m04._id, 0, 'b');
+    const right = await check(hosea, tryCatch._id, 0, 'b');
     assert.equal(right.status, 200);
     assert.deepEqual(right.body, { correct: true });
 
-    const wrong = await check(hosea, m04._id, 0, 'a');
+    const wrong = await check(hosea, tryCatch._id, 0, 'a');
     assert.equal(wrong.status, 200);
     assert.deepEqual(wrong.body, { correct: false });
 
-    const missing = await check(hosea, m04._id, 5, 'b');
+    const missing = await check(hosea, tryCatch._id, 5, 'b');
     assert.equal(missing.status, 404);
     assert.equal(missing.body.reason, 'unknown_quiz_item');
   });
 
   it('quiz check without an answer is not correct', async () => {
-    const res = await check(hosea, m04._id, 0, undefined);
+    const res = await check(hosea, tryCatch._id, 0, undefined);
     assert.deepEqual(res.body, { correct: false });
   });
 
   it('GET /modules for hosea lists the beginner path in order', async () => {
     const res = await request(app).get('/modules').set(auth(hosea));
     assert.equal(res.status, 200);
-    assert.deepEqual(res.body.modules.map((m) => m.order), [1, 2, 4, 7]);
+    assert.deepEqual(res.body.modules.map((m) => m.order), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
     assert.equal(JSON.stringify(res.body).includes('correct_answer'), false);
   });
 
@@ -92,7 +94,7 @@ describe('modules', () => {
 
   it('module routes require a token', async () => {
     assert.equal((await request(app).get('/modules')).status, 401);
-    assert.equal((await request(app).get(`/modules/${m04._id}`)).status, 401);
-    assert.equal((await request(app).post(`/modules/${m04._id}/quiz/0/check`).send({ answer: 'b' })).status, 401);
+    assert.equal((await request(app).get(`/modules/${tryCatch._id}`)).status, 401);
+    assert.equal((await request(app).post(`/modules/${tryCatch._id}/quiz/0/check`).send({ answer: 'b' })).status, 401);
   });
 });

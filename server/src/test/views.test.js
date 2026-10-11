@@ -2,9 +2,11 @@ import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 
 import { JWT_SECRET } from '../config.js';
 import AssessmentSession from '../models/AssessmentSession.js';
+import LearningPath from '../models/LearningPath.js';
 import Module from '../models/Module.js';
 import Question from '../models/Question.js';
 import User from '../models/User.js';
@@ -34,7 +36,9 @@ describe('result, progress and overview computed from the database', () => {
   before(async () => {
     hosea = await login(app, 'hosea@gapcheck.test');
     nadia = await login(app, 'nadia@gapcheck.test');
-    const mods = await Module.find().lean();
+    // Every path now starts at order 1, so look orders up on hosea's (beginner) path only.
+    const beginner = await LearningPath.findOne({ level: 'beginner' }).lean();
+    const mods = await Module.find({ path_id: beginner._id }).lean();
     moduleByOrder = new Map(mods.map((m) => [m.order, m]));
   });
 
@@ -46,7 +50,7 @@ describe('result, progress and overview computed from the database', () => {
     assert.equal(res.body.earnedPoints, 168);
     assert.equal(res.body.possiblePoints, 290);
     assert.equal(res.body.topic_accuracy.at(-1).topic, 'async');
-    assert.deepEqual(res.body.learning_path.steps.map((s) => s.module_count), [3, 1, 0]);
+    assert.deepEqual(res.body.learning_path.steps.map((s) => s.module_count), [4, 3, 2]);
     assert.equal(
       res.body.narrative.summary,
       'Kamu berada 13.1 poin dari Intermediate. Topik terlemah kamu saat ini adalah async.',
@@ -79,7 +83,7 @@ describe('result, progress and overview computed from the database', () => {
     assert.equal(b.acceptance_rate, 0.67);
 
     assert.equal(b.modules_completed, 1);
-    assert.equal(b.modules_total, 4);
+    assert.equal(b.modules_total, 9);
 
     const asyncTopic = b.topic_accuracy.find((t) => t.topic === 'async');
     // Order 1 shares the topic but is already completed, so the callout skips to order 2.
@@ -112,8 +116,8 @@ describe('result, progress and overview computed from the database', () => {
       'Dipilih karena topik async adalah topik terlemah di diagnostik terakhir kamu.',
     );
     assert.deepEqual(b.in_progress.map((m) => m.order), [2]);
-    assert.equal(b.in_progress[0].progress_percent, 60);
-    assert.deepEqual(b.path_steps.map((s) => s.module_count), [3, 1, 0]);
+    assert.equal(b.in_progress[0].progress_percent, 50);
+    assert.deepEqual(b.path_steps.map((s) => s.module_count), [4, 3, 2]);
     assert.equal(b.puzzle.streak_days, 7);
   });
 
@@ -183,10 +187,18 @@ describe('result, progress and overview computed from the database', () => {
 
   it('next_up stays null on a path with no modules', async () => {
     const { token } = await tempUser('empty-path', 'intermediate');
-    const res = await get(token, '/overview');
-    assert.equal(res.status, 200);
-    assert.equal(res.body.level, 'intermediate');
-    assert.equal(res.body.next_up, null);
+    // The seed gives every path modules, so park the intermediate ones elsewhere for this case.
+    const intermediate = await LearningPath.findOne({ level: 'intermediate' }).lean();
+    const parked = new mongoose.Types.ObjectId();
+    await Module.updateMany({ path_id: intermediate._id }, { $set: { path_id: parked } });
+    try {
+      const res = await get(token, '/overview');
+      assert.equal(res.status, 200);
+      assert.equal(res.body.level, 'intermediate');
+      assert.equal(res.body.next_up, null);
+    } finally {
+      await Module.updateMany({ path_id: parked }, { $set: { path_id: intermediate._id } });
+    }
   });
 
   it('views require a token', async () => {

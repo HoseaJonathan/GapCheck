@@ -7,16 +7,17 @@ import Submission from '../models/Submission.js';
 import LearningPath from '../models/LearningPath.js';
 import Module from '../models/Module.js';
 import Progress from '../models/Progress.js';
+import QuizAttempt from '../models/QuizAttempt.js';
 import { POINTS, THRESHOLDS, scoreSubmission } from '../scoring.js';
 import { finishSession } from '../services/sessions.js';
 import { questions as questionData } from './data/questions.js';
 import { paths } from './data/paths.js';
-import { modules as moduleData } from './data/modules.js';
+import { modulesByLevel } from './data/modules.js';
 import {
   PASSWORD, users as userData, historySnapshots, canonicalRuns, CANONICAL_START, CANONICAL_FINISH,
 } from './data/users.js';
 
-const MODELS = [User, Question, AssessmentSession, Submission, LearningPath, Module, Progress];
+const MODELS = [User, Question, AssessmentSession, Submission, LearningPath, Module, Progress, QuizAttempt];
 const POSSIBLE_TOTAL = questionData.reduce((sum, q) => sum + POINTS[q.difficulty], 0);
 
 /** Seed wipes every collection, so it must never run against a production database. */
@@ -28,6 +29,21 @@ function levelFor(percentage) {
   if (percentage <= THRESHOLDS.new) return 'new';
   if (percentage <= THRESHOLDS.beginner) return 'beginner';
   return 'intermediate';
+}
+
+// Hosea finished module 1 before his last sitting (2026-09-22), so it alone cannot unlock a checkpoint.
+const HOSEA_MODULE_1_DONE = new Date('2026-09-10T10:00:00Z');
+
+/**
+ * Inserts one path's modules in order so each module's prerequisite (order - 1)
+ * already has an _id; the first module has no prerequisite.
+ */
+async function insertPathModules(pathId, modules) {
+  const docs = [];
+  for (const m of [...modules].sort((a, b) => a.order - b.order)) {
+    docs.push(await Module.create({ ...m, path_id: pathId, requires: docs.at(-1)?._id ?? null }));
+  }
+  return docs;
 }
 
 // Spacing leaves the last answer a few minutes before the 38m14s finish time.
@@ -66,13 +82,26 @@ export async function seed() {
   const questions = new Map(inserted.map((q) => [q.slug, q]));
 
   const pathDocs = await LearningPath.insertMany(paths);
-  const beginner = pathDocs.find((p) => p.level === 'beginner');
-  const moduleDocs = await Module.insertMany(moduleData.map((m) => ({ ...m, path_id: beginner._id })));
-  const moduleByOrder = new Map(moduleDocs.map((m) => [m.order, m]));
+  const modulesByPath = {};
+  for (const path of pathDocs) {
+    modulesByPath[path.level] = await insertPathModules(path._id, modulesByLevel[path.level] ?? []);
+  }
+  const [hoseaFirst, hoseaSecond] = modulesByPath.beginner;
   await Progress.insertMany([
-    { user_id: hosea._id, module_id: moduleByOrder.get(1)._id, state: 'completed', percent_complete: 100 },
-    { user_id: hosea._id, module_id: moduleByOrder.get(2)._id, state: 'in_progress', percent_complete: 60 },
+    {
+      user_id: hosea._id, module_id: hoseaFirst._id, state: 'completed', percent_complete: 100,
+      completed_at: HOSEA_MODULE_1_DONE,
+    },
+    { user_id: hosea._id, module_id: hoseaSecond._id, state: 'in_progress', percent_complete: 50 },
   ]);
+  // Completion only comes from passing the quiz, so module 1 needs its passing attempt.
+  // Answers come from the content data, which is the single source of the key.
+  const answers = modulesByLevel.beginner.find((m) => m.order === 1).quiz.map((q) => q.correct_answer);
+  await QuizAttempt.create({
+    user_id: hosea._id, module_id: hoseaFirst._id, answers,
+    correct_count: answers.length, total: answers.length, score: 1, passed: true,
+    submitted_at: HOSEA_MODULE_1_DONE,
+  });
 
   // DATA DEMO: snapshot tanpa submission
   // The progress chart needs five sittings; only the last one is backed by real submissions.
