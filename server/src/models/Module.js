@@ -12,6 +12,8 @@ const quizItemSchema = new mongoose.Schema(
     options: [{ key: String, text: String, _id: false }],
     // Never sent to the client; read it with .select('+quiz.correct_answer') when grading.
     correct_answer: { type: String, select: false },
+    // Shown only after an attempt is graded, so it is hidden like correct_answer.
+    explanation: { type: String, select: false },
   },
   { _id: false },
 );
@@ -27,6 +29,8 @@ const moduleSchema = new mongoose.Schema(
     body: [blockSchema],
     quiz: [quizItemSchema],
     estimated_minutes: Number,
+    // Prerequisite module; null means the module is open from the start. Gating is computed from this, not stored.
+    requires: { type: mongoose.Schema.Types.ObjectId, ref: 'Module', default: null },
     unlock_rule: String,
     unlock_hint: String,
   },

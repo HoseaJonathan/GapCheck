@@ -17,3 +17,6 @@ export const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017
 /** A topic counts as solid at or above this score ratio, as a gap below GAP_TOPIC_THRESHOLD. */
 export const SOLID_TOPIC_THRESHOLD = 0.75;
 export const GAP_TOPIC_THRESHOLD = 0.5;
+
+/** A module quiz is passed at or above this score ratio. */
+export const QUIZ_PASS_THRESHOLD = 0.7;

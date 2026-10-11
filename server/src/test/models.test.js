@@ -10,6 +10,7 @@ import Submission from '../models/Submission.js';
 import LearningPath from '../models/LearningPath.js';
 import Module from '../models/Module.js';
 import Progress from '../models/Progress.js';
+import QuizAttempt from '../models/QuizAttempt.js';
 
 setupTestDb();
 
@@ -120,4 +121,40 @@ test('collection names match BAB 3', () => {
   assert.equal(LearningPath.collection.name, 'learning_paths');
   assert.equal(Module.collection.name, 'modules');
   assert.equal(Progress.collection.name, 'progress');
+});
+
+const anyId = () => new mongoose.Types.ObjectId();
+const moduleFixture = () => ({
+  path_id: anyId(), order: 1, title: 'M', topic: 'async', bloom_level: 'understand',
+});
+
+test('quiz_attempts collection and required fields', async () => {
+  assert.equal(QuizAttempt.collection.name, 'quiz_attempts');
+  await assert.rejects(QuizAttempt.create({ user_id: anyId() }), { name: 'ValidationError' });
+});
+
+test('quiz explanation is not selected by default', async () => {
+  const m = await Module.create({
+    ...moduleFixture(),
+    quiz: [{ question: 'q', options: [{ key: 'a', text: 'A' }], correct_answer: 'a', explanation: 'why' }],
+  });
+  const plain = await Module.findById(m._id).lean();
+  assert.equal('explanation' in plain.quiz[0], false);
+  const full = await Module.findById(m._id).select('+quiz.explanation +quiz.correct_answer').lean();
+  assert.equal(full.quiz[0].explanation, 'why');
+});
+
+test('module requires defaults to null', async () => {
+  assert.equal((await Module.create(moduleFixture())).requires, null);
+});
+
+test('progress state no longer accepts locked; completed_at is stored', async () => {
+  const uid = anyId();
+  await assert.rejects(Progress.create({ user_id: uid, module_id: anyId(), state: 'locked' }), { name: 'ValidationError' });
+  const p = await Progress.create({
+    user_id: uid, module_id: anyId(), state: 'completed', percent_complete: 100,
+    completed_at: new Date('2026-09-10T10:00:00Z'),
+  });
+  assert.equal(p.completed_at.toISOString(), '2026-09-10T10:00:00.000Z');
+  assert.equal((await Progress.create({ user_id: uid, module_id: anyId() })).state, 'in_progress');
 });
