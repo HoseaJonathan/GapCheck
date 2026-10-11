@@ -95,7 +95,7 @@ export default function Assessment() {
             <span className="label">BLOOM: {q.bloom_level.toUpperCase()}</span>
           </div>
           <h2 style={{ marginTop: 12 }}>{q.title}</h2>
-          <p style={{ marginTop: 10 }}>{q.description}</p>
+          <p style={{ marginTop: 10, whiteSpace: 'pre-wrap' }}>{q.description}</p>
 
           {q.requirements && (
             <>

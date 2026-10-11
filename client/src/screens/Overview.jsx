@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { api, useApi } from '../api.js';
+import { api, pathMessage, useApi } from '../api.js';
 import { Bar, Loading, ScoreTrack } from '../components/Bits.jsx';
 
 export default function Overview() {
@@ -45,7 +45,7 @@ export default function Overview() {
             <p style={{ marginTop: 8 }}>Kerjakan diagnostik dulu untuk membuka jalur belajarmu.</p>
           ) : (
             // Has a level but nothing to open: sending them back to the diagnostic would loop.
-            <p style={{ marginTop: 8 }}>Belum ada modul untuk jalur kamu.</p>
+            <p style={{ marginTop: 8 }}>{pathMessage(data)}</p>
           )}
         </div>
 

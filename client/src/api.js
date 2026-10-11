@@ -61,6 +61,15 @@ export const api = {
   submit: (payload) => request('/submit', { method: 'POST', body: JSON.stringify(payload) }),
 };
 
+/**
+ * Overview text for a learner with a level but no next_up: either every module on
+ * the path is done, or the path has no modules at all.
+ */
+export const pathMessage = (overview) =>
+  overview.path_steps?.some((s) => s.module_count > 0)
+    ? 'Semua modul di jalur kamu sudah selesai.'
+    : 'Belum ada modul untuk jalur kamu.';
+
 /** Small hook so every screen has the same loading/error shape. */
 export function useApi(fn, deps = []) {
   const [state, setState] = useState({ loading: true, data: null, error: null });

@@ -1,6 +1,6 @@
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
-import { api, useApi } from '../api.js';
+import { api, pathMessage, useApi } from '../api.js';
 import { Loading } from '../components/Bits.jsx';
 
 export default function ModuleScreen() {
@@ -16,7 +16,7 @@ function ModuleRedirect() {
   if (data.next_up) return <Navigate replace to={`/modules/${data.next_up.module._id}`} />;
   // Only a learner without a level still needs the diagnostic; one with a level would just come back here.
   if (data.level === null) return <Navigate replace to="/assessment" />;
-  return <div className="page"><p>Belum ada modul untuk jalur kamu.</p></div>;
+  return <div className="page"><p>{pathMessage(data)}</p></div>;
 }
 
 const isModuleLocked = (e) => e?.status === 403 && e.body?.reason === 'module_locked';
@@ -95,7 +95,9 @@ function ModuleView({ id }) {
           </div>
 
           {m.quiz?.length > 0 && (
-            <Quiz module={m} onLocked={() => setForcedLocked(true)} onPassed={() => setRev((r) => r + 1)} />
+            // Refetched after every graded attempt so quiz_status stays current. useApi keeps the old data
+            // while refetching, so Quiz stays mounted and its result (pass review or fail message) survives.
+            <Quiz module={m} onLocked={() => setForcedLocked(true)} onGraded={() => setRev((r) => r + 1)} />
           )}
 
           <div className="row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--rule)', paddingTop: 16 }}>
@@ -126,7 +128,13 @@ function LockedNotice({ module: m }) {
   );
 }
 
-function Quiz({ module: m, onLocked, onPassed }) {
+/** review[i] aligns with quiz[i]; falls back to the bare letter if the option is not found. */
+function optionLabel(item, k) {
+  const text = item?.options?.find((o) => o.key === k)?.text;
+  return text === undefined ? k : `${k.toUpperCase()}. ${text}`;
+}
+
+function Quiz({ module: m, onLocked, onGraded }) {
   const [answers, setAnswers] = useState({});
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -143,7 +151,7 @@ function Quiz({ module: m, onLocked, onPassed }) {
     try {
       const res = await api.submitQuiz(m._id, m.quiz.map((_, i) => answers[i]));
       setResult(res);
-      if (res.passed) onPassed();
+      onGraded();
     } catch (e) {
       if (isModuleLocked(e)) onLocked();
       else setError('Jawaban belum terkirim. Coba lagi.');
@@ -162,7 +170,7 @@ function Quiz({ module: m, onLocked, onPassed }) {
 
       {!passed && m.quiz.map((q, i) => (
         <div key={i} style={{ marginTop: 16 }}>
-          <p style={{ color: 'var(--ink)' }}>{i + 1}. {q.question}</p>
+          <p style={{ color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{i + 1}. {q.question}</p>
           <div className="stack">
             {q.options.map((o) => {
               const picked = answers[i] === o.key;
@@ -204,9 +212,9 @@ function Quiz({ module: m, onLocked, onPassed }) {
           <div className="stack" style={{ marginTop: 16 }}>
             {(result.review || []).map((r, i) => (
               <div key={i}>
-                <p style={{ color: 'var(--ink)' }}>{i + 1}. {r.question}</p>
-                <p className="muted">Jawaban kamu: {r.your_answer}</p>
-                <p className="muted">Jawaban benar: {r.correct_answer}</p>
+                <p style={{ color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{i + 1}. {r.question}</p>
+                <p className="muted">Jawaban kamu: {optionLabel(m.quiz[i], r.your_answer)}</p>
+                <p className="muted">Jawaban benar: {optionLabel(m.quiz[i], r.correct_answer)}</p>
                 <p>{r.explanation}</p>
               </div>
             ))}
