@@ -8,7 +8,7 @@ const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s %
 export default function Assessment() {
   const navigate = useNavigate();
   // POST /sessions resumes the open session, so a refresh keeps the timer.
-  const { data, loading } = useApi(() => api.startSession(), []);
+  const { data, loading, error } = useApi(() => api.startSession(), []);
   const [choice, setChoice] = useState(null);
   const finishing = useRef(false);
   const [index, setIndex] = useState(0);
@@ -38,6 +38,14 @@ export default function Assessment() {
   useEffect(() => { if (left !== null && left <= 0) finish(); }, [left]);
   useEffect(() => { if (q) { setCode(q.base_code || ''); setChoice(null); setDirty(false); setRun(null); } }, [q]);
 
+  if (error?.status === 403 && error.body?.reason === 'retake_locked') {
+    return (
+      <div className="page">
+        <p>{error.body.retake?.reason}</p>
+        <div style={{ marginTop: 16 }}><Link to="/">Kembali ke Overview</Link></div>
+      </div>
+    );
+  }
   if (loading || !q) return <Loading />;
 
   const isMcq = q.type === 'mcq';

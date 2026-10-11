@@ -53,10 +53,11 @@ export const api = {
   modules: () => request('/modules'),
   module: (id) => request(`/modules/${id}`),
   puzzle: () => request('/puzzle'),
-  startSession: (kind = 'diagnostic') => request('/sessions', { method: 'POST', body: JSON.stringify({ kind }) }),
+  startSession: () => request('/sessions', { method: 'POST' }),
   finishSession: (id) => request(`/sessions/${id}/finish`, { method: 'POST' }),
-  checkQuiz: (moduleId, index, answer) =>
-    request(`/modules/${moduleId}/quiz/${index}/check`, { method: 'POST', body: JSON.stringify({ answer }) }),
+  startModule: (id) => request(`/modules/${id}/start`, { method: 'POST' }),
+  submitQuiz: (id, answers) => request(`/modules/${id}/quiz/attempts`, { method: 'POST', body: JSON.stringify({ answers }) }),
+  quizAttempts: (id) => request(`/modules/${id}/quiz/attempts`),
   submit: (payload) => request('/submit', { method: 'POST', body: JSON.stringify(payload) }),
 };
 

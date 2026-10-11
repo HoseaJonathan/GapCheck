@@ -41,9 +41,8 @@ export default function Overview() {
               </div>
             </>
           ) : data.level === null ? (
-            <div style={{ marginTop: 8 }}>
-              <Link className="btn" to="/assessment">Mulai diagnostik</Link>
-            </div>
+            // The "Mulai diagnostik" action lives in the Asesmen ulang block below.
+            <p style={{ marginTop: 8 }}>Kerjakan diagnostik dulu untuk membuka jalur belajarmu.</p>
           ) : (
             // Has a level but nothing to open: sending them back to the diagnostic would loop.
             <p style={{ marginTop: 8 }}>Belum ada modul untuk jalur kamu.</p>
@@ -67,6 +66,28 @@ export default function Overview() {
       </section>
 
       <hr className="rule" />
+
+      {data.retake && (
+        <>
+          <section className="section">
+            <div className="label label--ink">ASESMEN ULANG</div>
+            <div style={{ marginTop: 12 }}>
+              {data.retake.allowed ? (
+                <Link className="btn" to="/assessment">
+                  {data.retake.kind === 'diagnostic' ? 'Mulai diagnostik' : 'Asesmen ulang'}
+                </Link>
+              ) : (
+                <>
+                  <button className="btn" disabled>Asesmen ulang</button>
+                  <p className="muted" style={{ marginTop: 8 }}>{data.retake.reason}</p>
+                </>
+              )}
+            </div>
+          </section>
+
+          <hr className="rule" />
+        </>
+      )}
 
       <section className="section">
         <div className="section__head">
