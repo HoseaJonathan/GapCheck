@@ -334,7 +334,7 @@ loadDashboard();
   {
     order: 5, title: 'Routing dan parameter di Express (req.params, req.query)', topic: 'rest-api', bloom_level: 'understand', estimated_minutes: 20,
     body: [
-      lead('Express mencocokkan setiap request dengan rute berdasarkan method dan path. Bagian path yang diawali titik dua menjadi req.params, sedangkan bagian setelah tanda tanya menjadi req.query. Nilai keduanya berupa string.'),
+      lead('Express mencocokkan setiap request dengan rute berdasarkan method dan path. Bagian path yang diawali titik dua menjadi req.params, sedangkan bagian setelah tanda tanya menjadi req.query. Nilai di req.params selalu string; nilai di req.query juga string, kecuali kalau nama parameternya berulang.'),
       text('Path parameter dipakai untuk identitas resource, misalnya /users/42 untuk user dengan id 42. Query string dipakai untuk opsi yang tidak mengubah identitas resource, seperti filter, urutan, atau halaman: /users?active=true&page=2.'),
       code('Melihat params dan query', `const express = require('express');
 const app = express();
@@ -347,7 +347,7 @@ app.listen(3000);
 // GET /users/42?active=true
 // -> { "params": { "id": "42" }, "query": { "active": "true" } }`),
       text('Query string tidak pernah masuk ke req.params. Express memisahkan path dari query sebelum mencocokkan rute, sehingga /users/42?active=true tetap cocok dengan /users/:id dan nilai id adalah "42".'),
-      callout('Semua nilai di req.params dan req.query adalah string. req.params.id === 42 selalu false. Ubah dulu dengan Number(...), lalu periksa hasilnya, misalnya dengan Number.isInteger.', 'warn'),
+      callout('Nilai di req.params selalu string. Nilai di req.query berupa string untuk satu nilai, tetapi menjadi array kalau nama parameternya berulang (?tag=a&tag=b). req.params.id === 42 selalu false. Ubah dulu dengan Number(...), lalu periksa hasilnya, misalnya dengan Number.isInteger.', 'warn'),
       code('Beberapa parameter dan konversi angka', `app.get('/posts/:postId/comments/:commentId', (req, res) => {
   const postId = Number(req.params.postId);
   if (!Number.isInteger(postId)) {
@@ -471,7 +471,7 @@ GET /books?level=a&level=b   -> 400 (nilainya array, bukan string)`),
     body: [
       lead('Status code memberi tahu client apa yang terjadi tanpa harus membaca isi respons. Middleware error mengumpulkan semua kegagalan ke satu tempat, sehingga setiap error dibalas dengan format yang sama.'),
       text('Status dibagi per kelompok. 2xx berarti berhasil: 200 OK, 201 Created untuk data baru, 204 No Content. 4xx berarti kesalahan di sisi client: 400 Bad Request untuk input yang tidak valid, 401 Unauthorized kalau belum login atau token salah, 403 Forbidden kalau sudah login tetapi tidak berhak, 404 Not Found kalau resource tidak ada. 5xx berarti kesalahan di sisi server, misalnya 500 Internal Server Error.'),
-      text('Express 4 hanya menangkap error yang dilempar secara sinkron dari handler. Kalau handler async reject, middleware error tidak dipanggil dan client tidak mendapat respons, sementara Node mencatat unhandled rejection. Express 5 sudah meneruskan reject dari handler async ke next secara otomatis, tetapi banyak proyek masih memakai Express 4. Karena itu pola asyncHandler masih perlu dikenali.'),
+      text('Express 4 hanya menangkap error yang dilempar secara sinkron dari handler. Kalau handler async reject, middleware error tidak dipanggil dan client tidak mendapat respons. Sejak Node.js 15, unhandled rejection itu bahkan menghentikan proses server. Express 5 sudah meneruskan reject dari handler async ke next secara otomatis, tetapi banyak proyek masih memakai Express 4. Karena itu pola asyncHandler masih perlu dikenali.'),
       code('Rute async, HttpError, dan middleware error', `const express = require('express');
 const app = express();
 
@@ -534,7 +534,7 @@ app.listen(3000);
           'Middleware error tidak dipanggil; Promise yang reject tidak ditangani, sehingga client tidak mendapat respons',
         ],
         'c',
-        'Express 4 mengabaikan Promise yang dikembalikan handler, sehingga reject-nya tidak pernah sampai ke next. Akibatnya terjadi unhandled rejection dan client tidak mendapat balasan. Pembungkus asyncHandler mengatasinya dengan .catch(next).',
+        'Express 4 mengabaikan Promise yang dikembalikan handler, sehingga reject-nya tidak pernah sampai ke next. Akibatnya client tidak mendapat balasan, dan sejak Node.js 15 unhandled rejection itu menghentikan proses server. Pembungkus asyncHandler mengatasinya dengan .catch(next).',
       ),
       item(
         "Dengan middleware error res.status(err.status ?? 500).json({ error: err.message || 'Internal Server Error' }), apa respons untuk throw new Error('x')?",
@@ -671,6 +671,9 @@ function UserName({ userId }) {
 
   useEffect(() => {
     let ignore = false;
+    // Kosongkan data user sebelumnya agar tidak tampil selagi user baru dimuat
+    setUser(null);
+    setError(null);
 
     async function load() {
       try {
