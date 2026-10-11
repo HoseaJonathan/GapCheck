@@ -110,9 +110,10 @@ export async function startModule(userId, moduleId) {
 }
 
 /**
- * Grades and stores one quiz attempt. A failed attempt reveals only the score,
- * so the quiz cannot be solved by probing; the key and explanations come back
- * only once the learner has passed.
+ * Grades and stores one quiz attempt. A failed attempt reveals only the score
+ * (correct_count), not which items were wrong; the key and explanations come back
+ * only once the learner has passed. With unlimited retries the count still lets a
+ * learner probe the key (see docs/DECISIONS.md, "Ancaman validitas").
  */
 export async function submitQuizAttempt(userId, moduleId, answers, now = new Date()) {
   const mod = await Module.findById(moduleId).select('+quiz.correct_answer +quiz.explanation').lean();
@@ -125,7 +126,9 @@ export async function submitQuizAttempt(userId, moduleId, answers, now = new Dat
   const attempt = await QuizAttempt.create({
     user_id: userId, module_id: mod._id, answers, ...grade, submitted_at: now,
   });
-  // Counting up to this attempt's own _id (not all rows) keeps two concurrent submits from sharing a number.
+  // Counting up to this attempt's own _id (not all rows) makes a duplicate number unlikely, but not impossible:
+  // concurrent inserts can land out of _id order. A duplicate only affects this response; the attempt history
+  // renumbers by _id.
   const attempt_no = await QuizAttempt.countDocuments({
     user_id: userId, module_id: mod._id, _id: { $lte: attempt._id },
   });

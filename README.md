@@ -154,8 +154,8 @@ server/src/learning.js      aturan belajar murni: lockStates, nextModule, gradeQ
 server/src/config.js        EXECUTION_CEILING_MS, SESSION_DURATION_SECONDS, QUIZ_PASS_THRESHOLD
 server/src/models/          model Mongoose: User, Question, Submission, AssessmentSession,
                             LearningPath, Module, Progress, QuizAttempt
-server/src/services/        logika bisnis: sesi, soal, modul, progression (mulai modul, kuis,
-                            gating), analisis, view
+server/src/services/        logika bisnis: sesi, soal, modul (buka/mulai modul, kuis),
+                            progression (status modul, kunci, retakeFor), analisis, view
 server/src/routes/          /auth, /questions, /sessions, /submissions, /result, /progress, /modules, /puzzle
 server/src/judge/           fakeJudge0.js — stub Judge0
 server/src/data/            puzzle.static.js — data Daily Puzzle statis (sampai keputusan A6)

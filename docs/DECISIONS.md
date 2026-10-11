@@ -286,3 +286,22 @@ di narasi penilaian maupun flowchart Diagnostic Test BAB 3. Fixture kanonik
 168/290 tidak bergantung padanya, karena sesi kanonik hanya berisi satu
 submission per soal; aturan ini baru menentukan skor pada sesi nyata ketika
 peserta mengirim ulang jawaban. Tulis bersama keputusan A1.
+
+### Ancaman validitas (untuk interpretasi BAB 4)
+
+- **Checkpoint memakai bank soal yang sama dengan diagnostik.** Modul sengaja
+  mengajarkan konsep yang diukur soal diagnostik, dan sebagian contoh kodenya
+  dekat dengan solusi soal itu (modul beginner 7 hampir sama dengan
+  `async-error-middleware`, modul 6 dengan `questions-difficulty-filter`, modul 4
+  mendekati `promise-all-prices`, modul intermediate 1 dengan
+  `retry-with-backoff`). Kenaikan skor checkpoint (A4) karena itu sebagian
+  mencerminkan paparan terhadap soal dan contoh solusinya, bukan murni
+  peningkatan kompetensi. Sebutkan sebagai ancaman validitas, atau pisahkan bank
+  soal checkpoint bila ingin mengklaim peningkatan kemampuan.
+- **Kunci kuis modul bisa ditebak lewat skor.** Percobaan gagal tidak
+  mengirim kunci, tetapi tetap mengembalikan `correct_count`, dan kuis boleh
+  diulang tanpa batas (A5). Peserta bisa mengubah satu jawaban per percobaan
+  dan melihat apakah `correct_count` naik. Metrik "jumlah percobaan sampai
+  lulus" karena itu tidak murni mengukur pemahaman; percobaan yang banyak dan
+  cepat berturut-turut lebih mungkin menandakan penebakan. Tafsirkan metrik ini
+  bersama selang waktu antarpercobaan (`submitted_at` di `quiz_attempts`).

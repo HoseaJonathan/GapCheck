@@ -4,9 +4,13 @@
  * requires, bukan disimpan, sehingga unlock_rule/unlock_hint juga tidak ada.
  * Progres per user ada di koleksi progress.
  *
- * Contoh kode memakai domain yang berbeda dari bank soal diagnostik: modul
- * mengajarkan konsepnya tanpa membocorkan jawaban soal yang akan diujikan ulang
- * di asesmen checkpoint.
+ * Modul sengaja mengajarkan konsep yang diukur soal diagnostik, dan sebagian
+ * contohnya dekat dengan solusi soal itu: modul beginner 7 hampir sama dengan
+ * async-error-middleware, modul 6 dengan questions-difficulty-filter, modul 4
+ * mendekati promise-all-prices, dan modul intermediate 1 dengan
+ * retry-with-backoff. Karena checkpoint memakai bank soal yang sama, kenaikan
+ * skor checkpoint sebagian mencerminkan paparan ini (lihat docs/DECISIONS.md,
+ * "Ancaman validitas").
  */
 
 const lead = (text) => ({ type: 'lead', text });
