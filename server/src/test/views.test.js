@@ -1,4 +1,4 @@
-import { describe, it, before } from 'node:test';
+import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
@@ -21,6 +21,12 @@ const get = (token, path) => request(app).get(path).set(auth(token));
 const post = (token, path, body) => request(app).post(path).set(auth(token)).send(body);
 
 const FALLBACK_REASON = 'Modul berikutnya di jalur belajar kamu.';
+const HOSEA_RETAKE = {
+  allowed: false,
+  kind: 'checkpoint',
+  reason: 'Selesaikan 3 modul lagi di langkah JavaScript asinkron untuk membuka asesmen ulang.',
+};
+const FIRST_DIAGNOSTIC = { allowed: true, kind: 'diagnostic', reason: null };
 
 /** A throwaway user signed in by token, so these cases never touch hosea or nadia. */
 async function tempUser(name, level) {
@@ -84,6 +90,7 @@ describe('result, progress and overview computed from the database', () => {
 
     assert.equal(b.modules_completed, 1);
     assert.equal(b.modules_total, 9);
+    assert.deepEqual(b.retake, HOSEA_RETAKE);
 
     const asyncTopic = b.topic_accuracy.find((t) => t.topic === 'async');
     // Order 1 shares the topic but is already completed, so the callout skips to order 2.
@@ -102,6 +109,7 @@ describe('result, progress and overview computed from the database', () => {
     assert.equal(res.body.weighted_score, null);
     assert.deepEqual(res.body.sessions, []);
     assert.deepEqual(res.body.topic_accuracy, []);
+    assert.deepEqual(res.body.retake, FIRST_DIAGNOSTIC);
   });
 
   it('GET /overview for hosea', async () => {
@@ -119,6 +127,8 @@ describe('result, progress and overview computed from the database', () => {
     assert.equal(b.in_progress[0].progress_percent, 50);
     assert.deepEqual(b.path_steps.map((s) => s.module_count), [4, 3, 2]);
     assert.equal(b.puzzle.streak_days, 7);
+    // Module 1 was passed before the last sitting, so it cannot open the checkpoint alone.
+    assert.deepEqual(b.retake, HOSEA_RETAKE);
   });
 
   it('GET /overview for nadia', async () => {
@@ -132,6 +142,7 @@ describe('result, progress and overview computed from the database', () => {
     assert.deepEqual(res.body.in_progress, []);
     assert.deepEqual(res.body.path_steps, []);
     assert.ok(res.body.puzzle);
+    assert.deepEqual(res.body.retake, FIRST_DIAGNOSTIC);
   });
 
   it('views never leak answer keys', async () => {
@@ -162,7 +173,7 @@ describe('result, progress and overview computed from the database', () => {
     }
   });
 
-  it('next_up falls back to the first open path module when the weakest topic has none', async () => {
+  it('next_up is the next open module even when the weakest topic has no module on the path', async () => {
     const { user, token } = await tempUser('fallback-topic', 'beginner');
     // One dom question and no answer: dom is the weakest topic, and the beginner path has no dom module.
     const dom = await Question.findOne({ slug: 'dom-query' });
@@ -178,7 +189,29 @@ describe('result, progress and overview computed from the database', () => {
     assert.equal(res.body.next_up.reason, FALLBACK_REASON);
   });
 
-  it('next_up falls back to the path when there is no analysable topic but there is a level', async () => {
+  it('next_up follows the gating, not the weakest topic, when that topic is still locked', async () => {
+    const { user, token } = await tempUser('locked-topic', 'beginner');
+    // react is the weakest topic, but its modules (8 and 9) wait on the whole chain before them.
+    const react = await Question.findOne({ slug: 'react-props-render' });
+    await AssessmentSession.create({
+      user_id: user._id, kind: 'diagnostic', status: 'finished', question_ids: [react._id],
+      started_at: new Date(), finished_at: new Date(),
+      result: { earned: 0, possible: 20, percentage: 0, level: 'beginner' },
+    });
+
+    const overview = await get(token, '/overview');
+    assert.equal(overview.body.next_up.module.order, 1);
+    // Module 1 is async, not react, so the reason must not claim it covers the gap.
+    assert.equal(overview.body.next_up.reason, FALLBACK_REASON);
+
+    // No react module is open yet, so the callout falls back to the first react module.
+    const result = await get(token, '/result');
+    const weakest = result.body.topic_accuracy.at(-1);
+    assert.equal(weakest.topic, 'react');
+    assert.equal(weakest.callout.module_id, String(moduleByOrder.get(8)._id));
+  });
+
+  it('next_up needs only a level: with no analysable topic it is the first open module', async () => {
     const { token } = await tempUser('fallback-level', 'beginner');
     const res = await get(token, '/overview');
     assert.equal(res.body.next_up.module.order, 1);
@@ -236,5 +269,33 @@ describe('result, progress and overview computed from the database', () => {
     const overview = await get(nadia, '/overview');
     assert.notEqual(overview.body.weighted_score, null);
     assert.equal(overview.body.level, finished.body.result.level);
+  });
+});
+
+describe('a completed path', () => {
+  let hosea;
+
+  before(async () => {
+    await seed();
+    hosea = await login(app, 'hosea@gapcheck.test');
+  });
+  // Passing every module rewrites hosea's progress, so the seed is put back for anything that follows.
+  after(seed);
+
+  it('has no next_up and allows a checkpoint', async () => {
+    const beginner = await LearningPath.findOne({ level: 'beginner' }).lean();
+    const mods = await Module.find({ path_id: beginner._id }).select('+quiz.correct_answer').sort({ order: 1 }).lean();
+    assert.equal(mods.length, 9);
+    // In order, because each module opens only once the one before it is passed.
+    for (const m of mods) {
+      const res = await post(hosea, `/modules/${m._id}/quiz/attempts`, { answers: m.quiz.map((q) => q.correct_answer) });
+      assert.equal(res.status, 201, `module ${m.order}`);
+      assert.equal(res.body.passed, true, `module ${m.order}`);
+    }
+
+    const res = await get(hosea, '/overview');
+    assert.equal(res.status, 200);
+    assert.equal(res.body.next_up, null);
+    assert.deepEqual(res.body.retake, { allowed: true, kind: 'checkpoint', reason: null });
   });
 });

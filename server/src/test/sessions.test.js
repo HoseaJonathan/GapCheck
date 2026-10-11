@@ -1,10 +1,12 @@
-import { describe, it, beforeEach } from 'node:test';
+import { describe, it, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 
 import User from '../models/User.js';
 import Question from '../models/Question.js';
 import AssessmentSession from '../models/AssessmentSession.js';
+import LearningPath from '../models/LearningPath.js';
+import Module from '../models/Module.js';
 import Submission from '../models/Submission.js';
 import { scoreSubmission } from '../scoring.js';
 import { seed } from '../seed/seed.js';
@@ -79,10 +81,11 @@ describe('assessment sessions', () => {
     assert.equal(await AssessmentSession.countDocuments({ status: 'in_progress', user_id: user._id }), 1);
   });
 
-  it('invalid kind', async () => {
+  it('the kind sent by the client is ignored', async () => {
+    // Formerly a 400 invalid_kind; the server now decides the kind, so junk is simply not read.
     const res = await start(hosea, 'final-exam');
-    assert.equal(res.status, 400);
-    assert.equal(res.body.reason, 'invalid_kind');
+    assert.equal(res.status, 201);
+    assert.equal(res.body.session.kind, 'diagnostic');
   });
 
   it('canonical answers then finish', async () => {
@@ -269,5 +272,86 @@ describe('assessment sessions', () => {
     assert.equal(res.status, 200);
     assert.deepEqual(res.body.submissions.map((s) => String(s.question_id)), [String(e2._id), String(e1._id)]);
     assert.ok(res.body.verdicts.includes('Accepted'));
+  });
+});
+
+describe('retake rule on POST /sessions', () => {
+  let hosea;
+  let nadia;
+  let beginner;
+
+  // The first describe wipes sessions and levels, so this one starts again from the seed.
+  before(async () => {
+    await seed();
+    hosea = await login(app, 'hosea@gapcheck.test');
+    nadia = await login(app, 'nadia@gapcheck.test');
+    const path = await LearningPath.findOne({ level: 'beginner' }).lean();
+    beginner = await Module.find({ path_id: path._id }).select('+quiz.correct_answer').sort({ order: 1 }).lean();
+  });
+  after(seed);
+
+  const pass = (token, mod) => request(app).post(`/modules/${mod._id}/quiz/attempts`).set(auth(token))
+    .send({ answers: mod.quiz.map((q) => q.correct_answer) });
+
+  // The cases below run in order: hosea is locked until the step is passed in the third one.
+  it('a learner who has not finished a step since the last assessment is refused', async () => {
+    const res = await start(hosea, 'diagnostic');
+    assert.equal(res.status, 403);
+    assert.equal(res.body.reason, 'retake_locked');
+    assert.deepEqual(res.body.retake, {
+      allowed: false,
+      kind: 'checkpoint',
+      reason: 'Selesaikan 3 modul lagi di langkah JavaScript asinkron untuk membuka asesmen ulang.',
+    });
+    const user = await User.findOne({ email: 'hosea@gapcheck.test' });
+    assert.equal(await AssessmentSession.countDocuments({ user_id: user._id, status: 'in_progress' }), 0);
+  });
+
+  it('an open session is resumed even while new ones are locked', async () => {
+    const user = await User.findOne({ email: 'hosea@gapcheck.test' });
+    const published = await Question.find({ is_published: true }).select('_id').lean();
+    const open = await AssessmentSession.create({
+      user_id: user._id, kind: 'checkpoint', started_at: new Date(), question_ids: published.map((q) => q._id),
+    });
+    try {
+      const res = await start(hosea);
+      assert.equal(res.status, 200);
+      assert.equal(res.body.session._id, String(open._id));
+    } finally {
+      await AssessmentSession.deleteOne({ _id: open._id });
+    }
+  });
+
+  it('passing the rest of the current step opens a checkpoint', async () => {
+    for (const order of [2, 3, 4]) {
+      const res = await pass(hosea, beginner[order - 1]);
+      assert.equal(res.status, 201, `module ${order}`);
+      assert.equal(res.body.passed, true, `module ${order}`);
+    }
+    const overview = await request(app).get('/overview').set(auth(hosea));
+    assert.deepEqual(overview.body.retake, { allowed: true, kind: 'checkpoint', reason: null });
+
+    const res = await start(hosea, 'diagnostic');
+    assert.equal(res.status, 201);
+    assert.equal(res.body.session.kind, 'checkpoint');
+  });
+
+  it('the first assessment is the diagnostic whatever the client asks, and the next is locked', async () => {
+    const first = await start(nadia, 'checkpoint');
+    assert.equal(first.status, 201);
+    assert.equal(first.body.session.kind, 'diagnostic');
+
+    // No answers: she scores 0, lands on the new path and has passed none of its modules.
+    const done = await finish(nadia, first.body.session._id);
+    assert.equal(done.status, 200);
+    assert.equal(done.body.result.level, 'new');
+
+    const again = await start(nadia);
+    assert.equal(again.status, 403);
+    assert.equal(again.body.reason, 'retake_locked');
+    assert.equal(
+      again.body.retake.reason,
+      'Selesaikan 1 modul lagi di langkah Dasar JavaScript untuk membuka asesmen ulang.',
+    );
   });
 });

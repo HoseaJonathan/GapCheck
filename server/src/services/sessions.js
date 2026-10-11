@@ -7,9 +7,8 @@ import AssessmentSession from '../models/AssessmentSession.js';
 import Question from '../models/Question.js';
 import Submission from '../models/Submission.js';
 import User from '../models/User.js';
+import { retakeFor } from './progression.js';
 import { listPublished, toSafeQuestion } from './questions.js';
-
-const KINDS = ['diagnostic', 'checkpoint'];
 
 // Every function takes `now` last so tests and the seed can pin the clock.
 
@@ -51,12 +50,20 @@ export async function expireIfDue(session, now = new Date()) {
 /**
  * Resumes the open session if there is one, otherwise opens a new one over
  * every published question. `created` tells the route 201 from 200.
+ *
+ * The kind is decided here by the retake rule, never by the client, so a
+ * learner cannot open a checkpoint early by asking for one. The rule only
+ * gates new sessions: an open session is always resumable, so answers already
+ * given are never stranded behind a lock.
  */
-export async function startSession(userId, kind, now = new Date()) {
-  if (!KINDS.includes(kind)) throw new HttpError(400, 'invalid_kind');
-
+export async function startSession(userId, now = new Date()) {
   const open = await AssessmentSession.findOne({ user_id: userId, status: 'in_progress' });
   if (open && !(await expireIfDue(open, now))) return resume(open, now);
+
+  const retake = await retakeFor(userId);
+  // The whole verdict is sent under `retake` (same shape as on /overview): `reason` already carries the error code.
+  if (!retake.allowed) throw new HttpError(403, 'retake_locked', { retake });
+  const { kind } = retake;
 
   const published = await listPublished();
   let session;

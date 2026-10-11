@@ -7,8 +7,9 @@ import { expireIfDue, finishSession, startSession } from '../services/sessions.j
 const router = Router();
 
 // 201 when a session was opened, 200 when the open one was resumed (also after losing a concurrent start).
+// Any kind in the body is ignored: the server picks it from the retake rule.
 router.post('/sessions', requireAuth, async (req, res) => {
-  const { created, ...body } = await startSession(req.user.sub, req.body?.kind);
+  const { created, ...body } = await startSession(req.user.sub);
   res.status(created ? 201 : 200).json(body);
 });
 

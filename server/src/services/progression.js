@@ -1,8 +1,13 @@
 import mongoose from 'mongoose';
 
-import { lockStates } from '../learning.js';
+import { HttpError } from '../errors.js';
+import { lockStates, retakeEligibility } from '../learning.js';
+import AssessmentSession from '../models/AssessmentSession.js';
+import LearningPath from '../models/LearningPath.js';
+import Module from '../models/Module.js';
 import Progress from '../models/Progress.js';
 import QuizAttempt from '../models/QuizAttempt.js';
+import User from '../models/User.js';
 
 /**
  * Per-learner state of modules: progress rows, computed locks and quiz history.
@@ -50,4 +55,23 @@ export async function moduleStatuses(userId, modules) {
       quiz_status: quizzes.get(id) ?? { ...NO_ATTEMPTS },
     }];
   }));
+}
+
+/**
+ * Whether the learner may start a new assessment, and which kind (spec A4).
+ * Every finished session counts, demo snapshots included, since each one is a
+ * sitting the learner has had. The path is looked up here rather than through
+ * modules.loadPath because modules.js imports this file; only the fields the
+ * rule reads are loaded.
+ */
+export async function retakeFor(userId) {
+  const user = await User.findById(userId).select('level').lean();
+  if (!user) throw new HttpError(401, 'unknown_user');
+  const path = user.level ? await LearningPath.findOne({ level: user.level }).lean() : null;
+  const [sessions, modules] = await Promise.all([
+    AssessmentSession.find({ user_id: user._id, status: 'finished' }).select('finished_at').lean(),
+    path ? Module.find({ path_id: path._id }).select('order topic requires').sort({ order: 1 }).lean() : [],
+  ]);
+  const progress = await progressMap(user._id, modules);
+  return retakeEligibility({ sessions, modules, progress, steps: path?.steps ?? [] });
 }

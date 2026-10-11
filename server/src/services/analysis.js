@@ -29,30 +29,18 @@ export async function loadLatestAnalysis(userId) {
 }
 
 /**
- * First module (by order) on `topic` the learner has not completed; failing
- * that, the first module on the topic at all; otherwise null. Next up and the
- * weakest-topic callout share this rule on purpose: pointing a learner at a
- * module they already finished does not help them.
+ * The module the weakest-topic callout points at: the first module (by order)
+ * on `topic` that is open and not completed; failing that, the first module on
+ * the topic at all; otherwise null. Locked modules are passed over first
+ * because sending a learner to a module they cannot open yet does not help,
+ * and finished ones because they already did it.
  *
- * @param {Array} modules            modules of one path
- * @param {Map}   progressByModule   String(module _id) -> progress document
+ * @param {Array} modules   modules of one path
+ * @param {Map}   locks     lockStates(modules, progress)
+ * @param {Map}   progress  String(module _id) -> progress document
  */
-export function pickModuleForTopic(modules, progressByModule, topic) {
-  const onTopic = [...modules].filter((m) => m.topic === topic).sort((a, b) => a.order - b.order);
-  return onTopic.find((m) => progressByModule.get(String(m._id))?.state !== 'completed')
-    ?? onTopic[0]
-    ?? null;
-}
-
-/**
- * First module (by order) on the path the learner has not completed, or null.
- * Next up falls back to this when the weakest topic has no module (or there is
- * no analysable topic yet), so a learner with a path is never left without a
- * next step just because their gap is not covered by a module.
- */
-export function firstOpenModule(modules, progressByModule) {
-  return [...modules]
-    .sort((a, b) => a.order - b.order)
-    .find((m) => progressByModule.get(String(m._id))?.state !== 'completed')
-    ?? null;
+export function calloutModule(modules, locks, progress, topic) {
+  const onTopic = modules.filter((m) => m.topic === topic).sort((a, b) => a.order - b.order);
+  const workable = (m) => !locks.get(String(m._id))?.locked && progress.get(String(m._id))?.state !== 'completed';
+  return onTopic.find(workable) ?? onTopic[0] ?? null;
 }

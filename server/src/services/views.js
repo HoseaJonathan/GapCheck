@@ -7,8 +7,10 @@ import AssessmentSession from '../models/AssessmentSession.js';
 import Progress from '../models/Progress.js';
 import Submission from '../models/Submission.js';
 import User from '../models/User.js';
-import { firstOpenModule, loadLatestAnalysis, pickModuleForTopic } from './analysis.js';
+import { lockStates, nextModule } from '../learning.js';
+import { calloutModule, loadLatestAnalysis } from './analysis.js';
 import { OUTLINE, loadPath, progressMap, stepsWithCounts, withProgress } from './modules.js';
+import { retakeFor } from './progression.js';
 
 const INTERMEDIATE_THRESHOLD = THRESHOLDS.beginner + 1;
 const BAND = { new: THRESHOLDS.new, beginner: THRESHOLDS.new + 1, intermediate: INTERMEDIATE_THRESHOLD };
@@ -39,7 +41,7 @@ const finishedSessions = (userId) =>
 function topicsWithCallout(topics, story, modules, progress) {
   const weakest = topics.at(-1);
   if (!weakest || weakest.accuracy >= GAP_TOPIC_THRESHOLD) return topics;
-  const module = pickModuleForTopic(modules, progress, weakest.topic);
+  const module = calloutModule(modules, lockStates(modules, progress), progress, weakest.topic);
   if (!module) return topics;
   return [...topics.slice(0, -1), { ...weakest, callout: { text: story.gaps.at(-1), module_id: module._id } }];
 }
@@ -85,7 +87,7 @@ export async function getResult(userId) {
 
 export async function getProgress(userId) {
   const user = await requireUser(userId);
-  const sessions = await finishedSessions(userId);
+  const [sessions, retake] = await Promise.all([finishedSessions(userId), retakeFor(userId)]);
 
   if (sessions.length === 0) {
     return {
@@ -94,6 +96,7 @@ export async function getProgress(userId) {
       delta_since_first: null, delta_since_previous: null,
       modules_completed: null, modules_total: null, acceptance_rate: null,
       sessions: [], topic_accuracy: [], bloom_levels: [], recent_submissions: [],
+      retake,
     };
   }
 
@@ -139,6 +142,7 @@ export async function getProgress(userId) {
       points_earned: s.points_earned,
       submitted_at: s.submitted_at,
     })),
+    retake,
   };
 }
 
@@ -151,30 +155,32 @@ function headline(latest) {
 }
 
 /**
- * The weakest topic's module when there is one, otherwise the first open module
- * on the path. The reason names the topic only when the topic picked the module,
- * so the learner is never told a module covers a gap it does not cover.
+ * The next module the gating lets the learner work on, or null when there is
+ * no path, no module, or nothing left. It follows the path order instead of
+ * jumping to the weakest topic, because a module on that topic may still be
+ * locked. The reason names the topic only when the module is on it, so the
+ * learner is never told a module covers a gap it does not cover.
  */
 function nextUp(weakest, modules, progress) {
-  const byTopic = weakest ? pickModuleForTopic(modules, progress, weakest) : null;
-  if (byTopic) {
-    return {
-      module: withProgress(byTopic, progress),
-      reason: `Dipilih karena topik ${weakest} adalah topik terlemah di diagnostik terakhir kamu.`,
-    };
-  }
-  const onPath = firstOpenModule(modules, progress);
-  return onPath && { module: withProgress(onPath, progress), reason: 'Modul berikutnya di jalur belajar kamu.' };
+  const module = nextModule(modules, lockStates(modules, progress), progress);
+  if (!module) return null;
+  return {
+    module: withProgress(module, progress),
+    reason: module.topic === weakest
+      ? `Dipilih karena topik ${weakest} adalah topik terlemah di diagnostik terakhir kamu.`
+      : 'Modul berikutnya di jalur belajar kamu.',
+  };
 }
 
 export async function getOverview(userId) {
   const user = await requireUser(userId);
-  const [sessions, analysis, { path, modules }, open] = await Promise.all([
+  const [sessions, analysis, { path, modules }, open, retake] = await Promise.all([
     finishedSessions(userId),
     loadLatestAnalysis(userId),
     loadPath(user.level),
     Progress.find({ user_id: userId, state: 'in_progress' })
       .populate({ path: 'module_id', select: OUTLINE }).lean(),
+    retakeFor(userId),
   ]);
   const progress = await progressMap(userId, modules);
   const latest = sessions.at(-1)?.result ?? null;
@@ -195,5 +201,6 @@ export async function getOverview(userId) {
       date: puzzle.date, topic: puzzle.topic, bonus_points: puzzle.bonus_points,
       streak_days: puzzle.streak_days, week_strip: puzzle.week_strip, solved: puzzle.solved,
     },
+    retake,
   };
 }
