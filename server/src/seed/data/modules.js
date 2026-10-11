@@ -216,14 +216,18 @@ tryTimes(flaky, 3).then((result) => console.log(result, 'setelah', calls, 'perco
     quiz: [
       item(
         'Kapan try/catch sinkron bisa menangkap error dari Promise?',
-        ['Selalu', 'Hanya jika Promise di-await di dalam blok try', 'Hanya pada Node, tidak di browser'],
+        [
+          'Selalu, asalkan fungsi yang mengembalikan Promise dipanggil di dalam blok try',
+          'Hanya jika Promise di-await di dalam blok try',
+          'Hanya pada Node, tidak di browser',
+        ],
         'b',
         'try/catch hanya menjaga kode selama blok try masih berjalan. Dengan await, eksekusi menunggu di dalam try sampai Promise selesai, sehingga reject-nya dilempar di sana dan ditangkap catch.',
       ),
       item(
         "task() reject dengan Error 'gagal'. Apa hasil await load()?\n\nasync function load() {\n  try {\n    return task();\n  } catch (err) {\n    return 'cadangan';\n  }\n}",
         [
-          "'cadangan'",
+          "'cadangan', karena task() dipanggil di dalam blok try sehingga reject-nya ditangkap catch",
           'undefined',
           "Error 'gagal' dilempar ke pemanggil, karena catch tidak pernah berjalan",
           'Promise yang tidak pernah selesai',
@@ -235,7 +239,7 @@ tryTimes(flaky, 3).then((result) => console.log(result, 'setelah', calls, 'perco
         "Apa yang terjadi pada kode berikut?\n\ntry {\n  setTimeout(() => {\n    throw new Error('x');\n  }, 0);\n} catch (err) {\n  console.log('tertangkap');\n}",
         [
           'catch ini tidak menangkap error tersebut, karena callback setTimeout berjalan setelah blok try selesai',
-          "'tertangkap' tercetak",
+          "'tertangkap' tercetak, karena callback setTimeout ditulis di dalam blok try sehingga error yang dilemparnya tetap ditangkap catch",
           'setTimeout menolak callback yang melempar error',
         ],
         'a',
@@ -429,7 +433,7 @@ GET /books?level=a&level=b   -> 400 (nilainya array, bukan string)`),
     quiz: [
       item(
         'Client mengirim GET /books?level= (tanpa nilai). Apa nilai req.query.level?',
-        ['undefined', "'' (string kosong)", 'null', 'false'],
+        ['undefined, karena parameter tanpa nilai dianggap tidak dikirim', "'' (string kosong)", 'null', 'false'],
         'b',
         "Parameter yang ada tetapi tanpa nilai menjadi string kosong. Karena itu pengecekan level === undefined tidak cukup; string kosong harus ditolak oleh pemeriksaan daftar nilai yang diizinkan.",
       ),
@@ -437,7 +441,7 @@ GET /books?level=a&level=b   -> 400 (nilainya array, bukan string)`),
         "Apa yang terjadi untuk nilai level yang tidak valid pada handler berikut?\n\nif (!LEVELS.includes(level)) res.status(400).json({ error: 'level tidak valid' });\nres.json(books.filter((b) => b.level === level));",
         [
           'Express menghentikan handler secara otomatis setelah status 400',
-          'Kedua respons dikirim berurutan ke client',
+          'Kedua respons dikirim berurutan ke client: lebih dulu status 400 dengan pesan error, lalu daftar buku hasil filter dengan status 200',
           'Respons 400 terkirim, lalu res.json kedua tetap berjalan dan Express melempar error karena header sudah terkirim',
         ],
         'c',
@@ -457,7 +461,7 @@ GET /books?level=a&level=b   -> 400 (nilainya array, bukan string)`),
         "Kenapa pemeriksaan LEVELS.includes(level) lebih aman daripada level !== 'expert'?",
         [
           'includes lebih cepat daripada operator !==',
-          'includes mengubah nilai menjadi huruf kecil sebelum membandingkan',
+          'includes mengubah nilai menjadi huruf kecil sebelum membandingkan, sehingga variasi penulisan seperti Basic atau BASIC otomatis diterima sebagai basic tanpa perlu diperiksa terpisah',
           'Express mewajibkan pemakaian includes untuk query parameter',
           'Semua nilai di luar daftar otomatis ditolak, termasuk string kosong, salah ketik, dan array; blacklist hanya menolak nilai yang sudah terpikirkan',
         ],
@@ -703,7 +707,7 @@ function UserName({ userId }) {
         'Apa masalah efek berikut?\n\nuseEffect(() => {\n  fetch(\'/api/items\').then((r) => r.json()).then(setItems);\n});',
         [
           'Efek tidak pernah berjalan karena tidak punya dependency array',
-          'Efek hanya berjalan sekali, sehingga data tidak pernah diperbarui',
+          'Efek hanya berjalan sekali setelah render pertama, karena tanpa dependency array React memperlakukannya sama seperti [], sehingga data tidak pernah diperbarui',
           'Efek berjalan setelah setiap render; setItems memicu render, lalu efek melakukan fetch lagi tanpa henti',
         ],
         'c',
@@ -712,7 +716,7 @@ function UserName({ userId }) {
       item(
         'Server membalas 404 untuk sebuah fetch. Apa yang dilakukan Promise dari fetch?',
         [
-          'Reject dengan error 404',
+          'Reject dengan error 404, sehingga kegagalannya langsung masuk ke .catch tanpa perlu memeriksa res.ok atau res.status',
           'Resolve dengan objek Response yang res.ok-nya bernilai false',
           'Melempar error secara sinkron',
           'Tidak pernah selesai',
@@ -724,7 +728,7 @@ function UserName({ userId }) {
         'Kapan fungsi cleanup yang dikembalikan oleh efek dijalankan?',
         [
           'Hanya sekali, saat komponen pertama kali tampil',
-          'Setiap kali fetch di dalam efek selesai',
+          'Setiap kali fetch di dalam efek selesai, sehingga cleanup adalah tempat untuk menyimpan hasil fetch ke state sebelum komponen render ulang',
           'Tidak pernah, kecuali dipanggil manual',
           'Sebelum efek dijalankan ulang karena dependency berubah, dan saat komponen dilepas dari layar',
         ],
