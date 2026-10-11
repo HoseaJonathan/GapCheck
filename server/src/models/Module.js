@@ -31,8 +31,6 @@ const moduleSchema = new mongoose.Schema(
     estimated_minutes: Number,
     // Prerequisite module; null means the module is open from the start. Gating is computed from this, not stored.
     requires: { type: mongoose.Schema.Types.ObjectId, ref: 'Module', default: null },
-    unlock_rule: String,
-    unlock_hint: String,
   },
   { collection: 'modules' },
 );
