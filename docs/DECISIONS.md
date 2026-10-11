@@ -83,8 +83,9 @@ terpengaruh**.
      membuka asesmen ulang." `GET /overview` dan `GET /progress` membawa
      `retake: { allowed, kind, reason }`.
   4. Sesi yang masih `in_progress` selalu bisa dilanjutkan.
-- **Sudah dikerjakan.** Koleksi `assessment_sessions` (tabel C5); status
-  diagnostik diturunkan dari ada tidaknya sesi selesai.
+- **Sudah dikerjakan.** Koleksi `assessment_sessions` (tabel C5); aturan
+  asesmen ulang menurunkan statusnya dari sesi yang sudah selesai, sedangkan
+  field `users.diagnostic_status` tetap disimpan sebagai penanda cepat.
 - **Masih tersisa untuk dokumen.** Use case "Mengulang asesmen" pada use case
   diagram, class diagram, dan tabel `users` (nasib `diagnostic_status`).
 - **Setelah level berubah.** Pengguna memakai path level barunya mulai dari
@@ -229,9 +230,12 @@ Nilai `verdict` diperluas menjadi empat: `Accepted`, `Wrong Answer`,
 | `_id` | ObjectId | Kunci utama sesi asesmen. |
 | `user_id` | ObjectId | Referensi ke `users`. |
 | `kind` | String | Jenis sesi: `diagnostic` atau `checkpoint`. |
-| `percentage` | Number | Persentase skor tertimbang pada sesi tersebut. |
-| `level` | String | Level hasil klasifikasi pada sesi tersebut. |
+| `status` | String | Status sesi: `in_progress` atau `finished`. |
+| `percentage` | Number | Persentase skor tertimbang pada sesi tersebut (disimpan di dalam `result`). |
+| `level` | String | Level hasil klasifikasi pada sesi tersebut (disimpan di dalam `result`). |
 | `started_at` | Date | Waktu sesi dimulai. |
+| `finished_at` | Date | Waktu sesi selesai. |
+| `result` | Object | Snapshot hasil saat sesi selesai: `{ earned, possible, percentage, level }`. |
 | `elapsed_seconds` | Number | Durasi pengerjaan sesi. |
 
 Dengan adanya tabel ini, field `users.diagnostic_status` menjadi turunan dan
