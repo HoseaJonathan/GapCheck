@@ -9,8 +9,8 @@ nama koleksi, nama field, dan fungsi klasifikasi sudah final — sehingga fase
 berikutnya hanya mengganti lapisan eksekusi, bukan kontrak API atau UI.
 
 Kunci jawaban MCQ dan test case tersembunyi (*hidden*) tidak pernah dikirim ke
-klien. Kuis modul diperiksa lewat `POST /modules/:id/quiz/:index/check` (tanpa
-status; kuis bernilai adalah sub-proyek 2).
+klien. Kuis modul dinilai di server lewat `POST /modules/:id/quiz/attempts`;
+kunci dan penjelasan baru dikirim setelah percobaan lulus (≥ 70%).
 
 ## Menjalankan
 
@@ -86,9 +86,13 @@ Keduanya memakai password `password123`. Tombol "Isi akun demo" di halaman
 login mengisi akun hosea.
 
 - `hosea@gapcheck.test` — level beginner, 5 sesi asesmen; untuk melihat
-  Overview, Result, Progress, dan modul.
+  Overview, Result, Progress, dan modul. Modul 1 sudah lulus dan modul 2 baru
+  dibuka (progres 50%), jadi modul berikutnya adalah modul 2. Asesmen ulangnya
+  terkunci sampai langkah async (modul 2–4) selesai; setelah modul 4 lulus,
+  tombol asesmen ulang aktif.
 - `nadia@gapcheck.test` — belum pernah mengerjakan diagnostik; untuk mencoba
-  asesmen dari awal.
+  asesmen dari awal. Setelah diagnostik selesai, asesmen ulangnya terkunci
+  sampai satu langkah path selesai.
 
 `npm run seed` mengosongkan lalu mengisi ulang database, jadi aman dijalankan
 berulang kali — pakai juga untuk mengembalikan data demo ke kondisi awal.
@@ -120,6 +124,8 @@ setelah dinyalakan.
 ## Data demo
 
 Bank soal berisi 15 soal (puzzle masih statis; keputusan A6 belum diambil).
+Path beginner berisi 9 modul lengkap dengan kuis; path new dan intermediate
+masing-masing 2 modul contoh.
 Empat sesi pertama milik hosea hanyalah snapshot skor tanpa submission, supaya
 grafik riwayat punya lima titik. Sesi kelima adalah sesi nyata yang dihitung dari
 15 submission: 168/290 = 57,93% → beginner.
@@ -130,10 +136,13 @@ grafik riwayat punya lima titik. Sesi kelima adalah sesi nyata yang dihitung dar
 cd server && npm test
 ```
 
-105 test: fixture kanonik 168/290 = 57.93% → beginner, boundary value 40/41/70/71,
+137 test: fixture kanonik 168/290 = 57.93% → beginner, boundary value 40/41/70/71,
 partisi ekuivalensi 0 dan 100, sesi kosong, soal MCQ, run yang tidak selesai,
-model Mongoose, seed, auth, sesi asesmen (termasuk auto-finish saat waktu habis),
-modul, dan view hasil/progres. Test memakai `mongodb-memory-server`, sehingga
+model Mongoose, seed, auth, sesi asesmen (termasuk auto-finish saat waktu habis
+dan penguncian asesmen ulang), modul, view hasil/progres, aturan belajar murni
+(`learning.js`: gating, boundary value kelulusan kuis 70%, kelayakan asesmen
+ulang), gating dan kuis bernilai lewat API, serta konten materi (kunci kuis,
+rantai `requires`). Test memakai `mongodb-memory-server`, sehingga
 **run pertama mengunduh binary MongoDB (~70 MB)**; run berikutnya memakai cache.
 
 ## Struktur
@@ -141,10 +150,12 @@ modul, dan view hasil/progres. Test memakai `mongodb-memory-server`, sehingga
 ```
 server/src/scoring.js       classify() — murni, tanpa akses database
 server/src/analytics.js     fungsi analitik murni (akurasi per topik/Bloom, delta, dll.)
-server/src/config.js        EXECUTION_CEILING_MS, SESSION_DURATION_SECONDS
+server/src/learning.js      aturan belajar murni: lockStates, nextModule, gradeQuiz, retakeEligibility
+server/src/config.js        EXECUTION_CEILING_MS, SESSION_DURATION_SECONDS, QUIZ_PASS_THRESHOLD
 server/src/models/          model Mongoose: User, Question, Submission, AssessmentSession,
-                            LearningPath, Module, Progress
-server/src/services/        logika bisnis: sesi, soal, modul, analisis, view
+                            LearningPath, Module, Progress, QuizAttempt
+server/src/services/        logika bisnis: sesi, soal, modul, progression (mulai modul, kuis,
+                            gating), analisis, view
 server/src/routes/          /auth, /questions, /sessions, /submissions, /result, /progress, /modules, /puzzle
 server/src/judge/           fakeJudge0.js — stub Judge0
 server/src/data/            puzzle.static.js — data Daily Puzzle statis (sampai keputusan A6)
@@ -165,7 +176,7 @@ docs/DECISIONS.md           kontradiksi mockup vs BAB 3 + usulan revisi tabel
 | 4 Diagnostic session | selesai — sesi tersimpan, auto-expire                                           |
 | 5 Judge0             | **stub** — `fakeJudge0()` meniru bentuk respons Judge0                  |
 | 6 Classification     | selesai dan teruji                                                              |
-| 7 Learning path      | penugasan otomatis dari level, path ter-seed                                    |
-| 8 Modules + progress | progres tersimpan, gating belum diberlakukan di server (sub-proyek 2)           |
+| 7 Learning path      | selesai — penugasan otomatis dari level; modul terkunci berurutan (`requires`) dan asesmen ulang diatur server |
+| 8 Modules + progress | selesai — progres tersimpan, gating dan kuis bernilai (lulus ≥ 70%, ulang tanpa batas) berjalan di server |
 | 9 Puzzle             | tampil, data statis —**belum disetujui masuk scope** (lihat DECISIONS.md) |
 | 10 Testing           | unit test selesai; matriks black box belum ditulis                              |

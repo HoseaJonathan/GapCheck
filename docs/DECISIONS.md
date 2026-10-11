@@ -64,24 +64,60 @@ terpengaruh**.
 
 ### A4. Retake dan checkpoint
 
+**Keputusan sudah diambil dan diterapkan di kode.**
+
 - Mockup punya tombol Retake assessment, Checkpoint challenge yang menilai
   ulang, dan riwayat skor lima sesi. Proposal memodelkan satu diagnostik sekali
   saja sebagai boolean `diagnostic_status`.
-- **Tugasnya.** Tambah koleksi `assessment_sessions`; ubah `diagnostic_status`
-  menjadi turunan (ada tidaknya sesi diagnostik pertama); tambahkan use case
-  "Mengulang asesmen" pada use case diagram; tulis aturan kapan retake boleh
-  dilakukan (misalnya setelah menyelesaikan minimal satu modul).
-- **Terpengaruh.** Use case diagram, class diagram, tabel `users`, halaman
-  Progress (grafik lima titik mustahil tanpa koleksi ini).
+- **Aturan yang diterapkan** (`retakeEligibility` di `server/src/learning.js`;
+  jenis sesi ditentukan server, `kind` dari klien diabaikan):
+  1. Diagnostik pertama selalu boleh dikerjakan.
+  2. Sesudahnya yang boleh hanya *checkpoint*, yaitu kalau salah satu terpenuhi:
+     (a) satu langkah path (kelompok modul dengan `topic` yang sama) menjadi
+     selesai sejak asesmen terakhir, artinya semua modulnya lulus dan kelulusan
+     terakhirnya setelah `finished_at` sesi terakhir (modul yang lulus sebelum
+     asesmen terakhir tetap dihitung sebagai bagian langkah, tetapi tidak cukup
+     sendirian); atau (b) seluruh modul di path sudah selesai.
+  3. Selain itu `POST /sessions` dijawab 403 `retake_locked` dengan `reason`,
+     misalnya "Selesaikan 3 modul lagi di langkah JavaScript asinkron untuk
+     membuka asesmen ulang." `GET /overview` dan `GET /progress` membawa
+     `retake: { allowed, kind, reason }`.
+  4. Sesi yang masih `in_progress` selalu bisa dilanjutkan.
+- **Sudah dikerjakan.** Koleksi `assessment_sessions` (tabel C5); status
+  diagnostik diturunkan dari ada tidaknya sesi selesai.
+- **Masih tersisa untuk dokumen.** Use case "Mengulang asesmen" pada use case
+  diagram, class diagram, dan tabel `users` (nasib `diagnostic_status`).
+- **Setelah level berubah.** Pengguna memakai path level barunya mulai dari
+  modul pertama; progres di path lama tetap tersimpan tetapi tidak dipakai.
 
 ### A5. Gating modul
 
-- "Locked · pass the module 07 quiz to open", kuis modul lulus pada 70%, satu
-  percobaan per soal. Tidak ada dalam enam fungsi perangkat lunak di BAB 3.
-- **Tugasnya.** Tambah `modules.unlock_rule` dan koleksi `progress`; tambahkan
-  fungsi ketujuh "Mengelola penguncian modul" atau perluas fungsi
-  "Menyajikan learning path"; buat activity diagram untuk alur kuis modul.
-- **Terpengaruh.** Daftar fungsi perangkat lunak, class diagram, koleksi baru.
+**Keputusan sudah diambil dan diterapkan di kode.**
+
+- "Locked · pass the module 07 quiz to open", kuis modul lulus pada 70%. Tidak
+  ada dalam enam fungsi perangkat lunak di BAB 3.
+- **Aturan yang diterapkan.**
+  - Gating **berurutan** lewat `modules.requires` (modul prasyarat, atau `null`
+    untuk modul pertama). Modul terbuka kalau tidak punya prasyarat atau
+    prasyaratnya `completed`. Status terkunci **dihitung** (`lockStates`), tidak
+    pernah disimpan; `unlock_rule` dan `unlock_hint` tetap muncul di respons API
+    tetapi bukan field basis data lagi.
+  - Isi modul terkunci (`body`, `quiz`) tidak dikirim ke klien, dan `start` atau
+    percobaan kuis pada modul terkunci ditolak 403 `module_locked`.
+  - Kuis dinilai di server dan **lulus pada skor ≥ 70%**
+    (`QUIZ_PASS_THRESHOLD = 0.7` di `server/src/config.js`; yang dibandingkan
+    adalah rasio mentah, bukan skor yang sudah dibulatkan). Seluruh kuis
+    **boleh diulang tanpa batas** dan setiap percobaan disimpan di
+    `quiz_attempts`. Ini menggantikan rumusan awal "satu percobaan per soal":
+    endpoint cek per soal (`/quiz/:index/check`) dihapus karena memungkinkan
+    menebak kunci satu per satu.
+  - Kunci jawaban dan penjelasan baru dikirim setelah percobaan lulus; percobaan
+    gagal hanya mengembalikan skor.
+  - Kelulusan pertama menulis `progress.completed_at` sekali dan tidak pernah
+    menimpanya.
+- **Masih tersisa untuk dokumen.** Fungsi ketujuh "Mengelola penguncian modul"
+  (atau perluasan fungsi "Menyajikan learning path"), class diagram, dan
+  activity diagram alur kuis modul (lulus, gagal, ulang).
 
 ### A6. Daily Puzzle sebagai fitur penuh
 
@@ -169,9 +205,9 @@ Nilai `verdict` diperluas menjadi empat: `Accepted`, `Wrong Answer`,
 | `topic` | String | Topik modul, sejajar dengan `questions.tags`. |
 | `bloom_level` | String | Tingkat kognitif materi modul. |
 | `body` | Array of Object | Isi materi berupa blok teks, blok kode, dan kotak penjelasan. |
-| `quiz` | Array of Object | Soal pemahaman di akhir modul beserta kunci jawabannya. |
+| `quiz` | Array of Object | Soal pemahaman di akhir modul `{ question, options, correct_answer, explanation }`. `correct_answer` dan `explanation` tidak pernah dikirim ke klien kecuali pada respons percobaan yang lulus. |
 | `estimated_minutes` | Number | Perkiraan waktu penyelesaian. |
-| `unlock_rule` | String | Aturan pembukaan modul, bernilai `open` atau `locked` beserta prasyaratnya. |
+| `requires` | ObjectId | Modul prasyarat dalam path yang sama, atau `null` untuk modul pertama. Menggantikan `unlock_rule`: status terkunci dihitung dari field ini dan progres pengguna, tidak disimpan. |
 
 ### C4. Tabel baru `progress`
 
@@ -180,8 +216,9 @@ Nilai `verdict` diperluas menjadi empat: `Accepted`, `Wrong Answer`,
 | `_id` | ObjectId | Kunci utama. |
 | `user_id` | ObjectId | Referensi ke `users`. |
 | `module_id` | ObjectId | Referensi ke `modules`. |
-| `percent_complete` | Number | Persentase penyelesaian modul. |
-| `state` | String | Status modul: `locked`, `in_progress`, atau `completed`. |
+| `percent_complete` | Number | Persentase penyelesaian modul, hanya bernilai 50 (materi dibuka pertama kali) atau 100 (kuis lulus). |
+| `state` | String | Status modul: `in_progress` atau `completed`. Status `locked` tidak disimpan; modul tanpa baris progres terkunci atau terbuka menurut `modules.requires`. |
+| `completed_at` | Date | Waktu kuis pertama kali lulus. Ditulis sekali dan tidak pernah ditimpa; dasar aturan asesmen ulang (A4). |
 | `last_position` | String | Posisi terakhir pengguna di dalam modul. |
 | `updated_at` | Date | Waktu pembaruan terakhir. |
 
@@ -201,7 +238,25 @@ Dengan adanya tabel ini, field `users.diagnostic_status` menjadi turunan dan
 dapat dihapus, atau dipertahankan sebagai penanda cepat bahwa sesi diagnostik
 pertama telah dilakukan.
 
-### C6. Tabel baru `puzzles` dan `puzzle_attempts`
+### C6. Tabel baru `quiz_attempts`
+
+| Nama Field | Tipe Data | Keterangan |
+|---|---|---|
+| `_id` | ObjectId | Kunci utama percobaan kuis. |
+| `user_id` | ObjectId | Referensi ke `users`. |
+| `module_id` | ObjectId | Referensi ke `modules`. |
+| `answers` | Array of String | Kunci opsi yang dipilih, urut sesuai soal. |
+| `correct_count` | Number | Jumlah jawaban benar. |
+| `total` | Number | Jumlah soal pada saat dinilai. |
+| `score` | Number | `correct_count / total`, dibulatkan 2 desimal. |
+| `passed` | Boolean | `true` kalau `correct_count / total` ≥ 0,7 (`QUIZ_PASS_THRESHOLD`). |
+| `submitted_at` | Date | Waktu percobaan dikirim. |
+
+Setiap percobaan disimpan sebagai baris sendiri dan tidak pernah ditimpa, jadi
+jumlah percobaan sampai lulus dapat dihitung untuk BAB 4. Indeks:
+`(user_id, module_id, submitted_at)`.
+
+### C7. Tabel baru `puzzles` dan `puzzle_attempts`
 
 Hanya ditambahkan apabila keputusan pada butir A6 adalah mempertahankan fitur
 Daily Puzzle dalam scope.
@@ -212,10 +267,10 @@ Daily Puzzle dalam scope.
 
 | Butir pemeriksaan | Status |
 |---|---|
-| Kode sesuai diagram UML | Belum — A4, A5, A7 belum punya diagram. |
-| Nama koleksi dan field sesuai tabel basis data | Kode sudah mengikuti C1–C5 (model Mongoose di `server/src/models`); tinggal memasukkan bagian C ke dokumen BAB 3. |
+| Kode sesuai diagram UML | Belum — A4, A5, A7 belum punya diagram (aturannya sudah final di kode). |
+| Nama koleksi dan field sesuai tabel basis data | Kode sudah mengikuti C1–C6 (model Mongoose di `server/src/models`); tinggal memasukkan bagian C ke dokumen BAB 3. |
 | UI sesuai mockup | Sebagian — enam layar utama sudah dibuat; editor kode masih textarea biasa, belum ada syntax highlighting. |
-| Tidak ada perilaku mockup tanpa bagian proposal | Belum — Puzzle, gating modul, timer, dan retake belum punya narasi. |
+| Tidak ada perilaku mockup tanpa bagian proposal | Belum — Puzzle, gating modul, kuis bernilai, timer, dan retake sudah berjalan di kode tetapi belum punya narasi di BAB 3. |
 | Setiap kebutuhan punya kasus uji black box | Sebagian — validasi `?difficulty=` dan 401 sudah diuji; matriks equivalence partitioning dan boundary value analysis belum ditulis. |
 
 ### Aturan penilaian yang harus masuk narasi BAB 3
