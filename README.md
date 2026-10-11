@@ -14,25 +14,99 @@ status; kuis bernilai adalah sub-proyek 2).
 
 ## Menjalankan
 
-Butuh **Node.js ≥ 22.9** (skrip npm memakai `--env-file-if-exists`) dan Docker.
-Tiga langkah (MongoDB, server, klien):
+### Prasyarat
+
+| Alat | Versi | Cek |
+| --- | --- | --- |
+| Git | apa saja | `git --version` |
+| Node.js | **≥ 22.9** (skrip npm memakai `--env-file-if-exists`) | `node -v` |
+| Docker Desktop | apa saja, **harus sudah dibuka** sebelum langkah 2 | `docker info` |
+
+### Pertama kali
+
+Perintah di bawah ditulis satu per baris, jadi bisa dijalankan di PowerShell,
+CMD, maupun Git Bash. Butuh **tiga jendela terminal**: satu untuk perintah
+sekali jalan, satu untuk server, satu untuk klien.
+
+**1. Ambil kode**
 
 ```bash
-docker compose up -d                                                   # MongoDB 7 di localhost:27017
-cd server && cp .env.example .env && npm install && npm run seed && npm run dev   # http://localhost:4000
-cd client && npm install && npm run dev                                # http://localhost:5173
+git clone https://github.com/HoseaJonathan/GapCheck.git
+cd GapCheck
 ```
 
-Rangkaian `a && b` di atas butuh Git Bash (atau shell POSIX lain). Di Windows
-PowerShell 5.1 operator `&&` tidak ada, jadi jalankan perintahnya satu per satu.
+**2. Nyalakan MongoDB** (dari folder root repo, Docker Desktop harus sudah jalan)
 
-Login demo (keduanya `password123`):
+```bash
+docker compose up -d
+```
 
-- `hosea@gapcheck.test` — level beginner, 5 sesi asesmen (otomatis dipakai klien).
-- `nadia@gapcheck.test` — belum pernah mengerjakan diagnostik.
+MongoDB 7 berjalan di `localhost:27017`. Datanya disimpan di volume Docker
+(`<nama-folder>_gapcheck-mongo`), jadi tidak hilang saat komputer dimatikan.
+
+**3. Siapkan server dan isi data contoh** (terminal 2)
+
+```bash
+cd server
+copy .env.example .env
+npm install
+npm run seed
+npm run dev
+```
+
+`copy` untuk PowerShell/CMD; di Git Bash pakai `cp .env.example .env`. Server
+siap kalau muncul `API on http://localhost:4000`. Biarkan terminal ini terbuka.
+
+**4. Jalankan klien** (terminal 3, dari folder root repo)
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+Buka **http://localhost:5173**. Klien meneruskan `/api/*` ke server di port
+4000, jadi server dari langkah 3 harus tetap jalan.
+
+### Hari berikutnya
+
+Langkah 1 dan `npm install` tidak perlu diulang. Cukup:
+
+1. buka Docker Desktop, lalu `docker compose up -d` di root repo;
+2. `npm run dev` di `server/`;
+3. `npm run dev` di `client/`.
+
+Setelah `git pull` yang mengubah `package.json`, jalankan `npm install` lagi di
+folder yang berubah. Setelah `git pull` yang mengubah `server/src/seed/`,
+jalankan `npm run seed` lagi.
+
+### Login demo
+
+Keduanya memakai password `password123`. Tombol "Isi akun demo" di halaman
+login mengisi akun hosea.
+
+- `hosea@gapcheck.test` — level beginner, 5 sesi asesmen; untuk melihat
+  Overview, Result, Progress, dan modul.
+- `nadia@gapcheck.test` — belum pernah mengerjakan diagnostik; untuk mencoba
+  asesmen dari awal.
 
 `npm run seed` mengosongkan lalu mengisi ulang database, jadi aman dijalankan
-berulang kali.
+berulang kali — pakai juga untuk mengembalikan data demo ke kondisi awal.
+
+### Kalau ada masalah
+
+| Gejala | Penyebab dan solusi |
+| --- | --- |
+| `MongoDB tidak terjangkau di mongodb://localhost:27017/gapcheck` | Docker Desktop belum dibuka atau container belum jalan. Buka Docker Desktop, lalu `docker compose up -d` di root repo. |
+| `docker: error during connect ... dockerDesktopLinuxEngine` | Docker Desktop belum selesai menyala. Tunggu sampai statusnya *running*, lalu ulangi. |
+| `bad option: --env-file-if-exists` | Node terlalu lama. Pasang Node.js 22.9 atau lebih baru. |
+| `EADDRINUSE` / `Port 5173 is in use` / port 4000 dipakai | Ada server lain (mungkin salinan repo lain) di port itu. Hentikan dengan Ctrl+C di terminalnya, lalu jalankan ulang. |
+| Halaman terbuka tetapi data kosong / login gagal | Database belum diisi. Jalankan `npm run seed` di `server/`. |
+| Hasil hosea berubah dari 168/290 | Ada sesi asesmen baru yang dibuka sebagai hosea. Jalankan `npm run seed` untuk mengembalikannya. |
+
+Untuk mematikan MongoDB: `docker compose down` (data tetap ada). Untuk
+menghapus datanya juga: `docker compose down -v`, lalu `npm run seed` lagi
+setelah dinyalakan.
 
 ### Sebelum sidang
 
