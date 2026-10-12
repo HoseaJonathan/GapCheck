@@ -41,8 +41,10 @@ cd GapCheck
 docker compose up -d
 ```
 
-MongoDB 7 berjalan di `localhost:27017`. Datanya disimpan di volume Docker
-(`<nama-folder>_gapcheck-mongo`), jadi tidak hilang saat komputer dimatikan.
+MongoDB 7 berjalan di `localhost:27017` (container `gapcheck-mongo-1`). Datanya
+disimpan di volume Docker `gapcheck_gapcheck-mongo`, jadi tidak hilang saat komputer
+dimatikan. Nama proyek dikunci di `docker-compose.yml` (`name: gapcheck`), sehingga
+salinan repo di folder mana pun memakai database yang sama.
 
 **3. Siapkan server dan isi data contoh** (terminal 2)
 
