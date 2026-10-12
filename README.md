@@ -12,6 +12,37 @@ Kunci jawaban MCQ dan test case tersembunyi (*hidden*) tidak pernah dikirim ke
 klien. Kuis modul dinilai di server lewat `POST /modules/:id/quiz/attempts`;
 kunci dan penjelasan baru dikirim setelah percobaan lulus (≥ 70%).
 
+## Mulai cepat
+
+Untuk anggota kelompok yang ingin langsung membuka web-nya. Rinciannya ada di
+bagian [Menjalankan](#menjalankan) di bawah.
+
+1. Pasang **Git**, **Node.js ≥ 22.9**, dan **Docker Desktop**, lalu buka Docker Desktop.
+2. Ambil kode dan pindah ke branch terbaru:
+   ```bash
+   git clone https://github.com/HoseaJonathan/GapCheck.git
+   cd GapCheck
+   git checkout feat/mongodb-data-layer
+   docker compose up -d
+   ```
+3. Terminal kedua, dari folder `GapCheck`:
+   ```bash
+   cd server
+   copy .env.example .env
+   npm install
+   npm run seed
+   npm run dev
+   ```
+4. Terminal ketiga, dari folder `GapCheck`:
+   ```bash
+   cd client
+   npm install
+   npm run dev
+   ```
+5. Buka **http://localhost:5173**, login dengan `hosea@gapcheck.test` atau
+   `nadia@gapcheck.test` (password `password123`), lalu ikuti
+   [Yang bisa dicoba](#yang-bisa-dicoba).
+
 ## Menjalankan
 
 ### Prasyarat
@@ -33,7 +64,24 @@ sekali jalan, satu untuk server, satu untuk klien.
 ```bash
 git clone https://github.com/HoseaJonathan/GapCheck.git
 cd GapCheck
+git checkout feat/mongodb-data-layer
 ```
+
+Versi dengan MongoDB dan fitur belajar ada di branch `feat/mongodb-data-layer`
+selama Pull Request-nya belum di-merge ke `main`. Setelah di-merge, baris
+`git checkout` tidak diperlukan lagi.
+
+**Sudah pernah clone sebelumnya?** Tidak perlu clone ulang. Dari folder
+`GapCheck`:
+
+```bash
+git fetch
+git checkout feat/mongodb-data-layer
+git pull
+```
+
+Lalu lanjutkan langkah 2–4 di bawah, termasuk `npm install` dan `npm run seed`,
+karena dependency dan data contohnya berubah.
 
 **2. Nyalakan MongoDB** (dari folder root repo, Docker Desktop harus sudah jalan)
 
@@ -46,7 +94,7 @@ disimpan di volume Docker `gapcheck_gapcheck-mongo`, jadi tidak hilang saat komp
 dimatikan. Nama proyek dikunci di `docker-compose.yml` (`name: gapcheck`), sehingga
 salinan repo di folder mana pun memakai database yang sama.
 
-**3. Siapkan server dan isi data contoh** (terminal 2)
+**3. Siapkan server dan isi data contoh** (terminal 2, dari folder root repo)
 
 ```bash
 cd server
@@ -98,6 +146,32 @@ login mengisi akun hosea.
 
 `npm run seed` mengosongkan lalu mengisi ulang database, jadi aman dijalankan
 berulang kali — pakai juga untuk mengembalikan data demo ke kondisi awal.
+
+### Yang bisa dicoba
+
+**Sebagai hosea** (sudah punya hasil diagnostik):
+
+1. **Overview** menunjukkan modul berikutnya (modul 2) dan tombol "Asesmen ulang"
+   yang masih terkunci beserta alasannya.
+2. **Result** dan **Progress** menampilkan skor 168/290 = 57,93%, akurasi per
+   topik (async paling lemah), dan grafik lima sesi.
+3. Buka **modul 3**: modul ini terkunci dan isinya tidak ditampilkan.
+4. Buka **modul 2**, kerjakan kuis dengan jawaban salah: hanya skor yang muncul.
+   Tekan "Coba lagi", jawab dengan benar: pembahasan muncul dan modul 3 terbuka.
+5. Luluskan modul 3 dan 4: tombol "Asesmen ulang" di Overview menjadi aktif.
+
+**Sebagai nadia** (belum pernah tes):
+
+1. Overview mengajak mulai diagnostik.
+2. Kerjakan diagnostik sampai tekan "Selesai", lalu lihat Result.
+3. Kembali ke Overview: jalur belajar sesuai level sudah muncul, dan asesmen ulang
+   terkunci sampai satu langkah jalur selesai.
+
+Setelah selesai mencoba, jalankan `npm run seed` di `server/` untuk
+mengembalikan semua data ke kondisi awal.
+
+**Mematikan aplikasi:** tekan Ctrl+C di terminal server dan terminal klien, lalu
+`docker compose down` di root repo (data tetap tersimpan).
 
 ### Kalau ada masalah
 
