@@ -18,5 +18,11 @@ export const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017
 export const SOLID_TOPIC_THRESHOLD = 0.75;
 export const GAP_TOPIC_THRESHOLD = 0.5;
 
+/**
+ * The admin role is a dev/demo tool (open every module, see quiz keys, switch path,
+ * retake any time). It is not part of BAB 3, so it never works in production.
+ */
+export const ADMIN_ENABLED = process.env.NODE_ENV !== 'production';
+
 /** A module quiz is passed at or above this score ratio. */
 export const QUIZ_PASS_THRESHOLD = 0.7;

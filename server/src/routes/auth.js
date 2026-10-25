@@ -6,6 +6,7 @@ import { JWT_SECRET } from '../config.js';
 import { HttpError } from '../errors.js';
 import { requireAuth } from '../middleware/auth.js';
 import User from '../models/User.js';
+import { isAdminUser } from '../services/admin.js';
 
 const router = Router();
 
@@ -13,6 +14,7 @@ const publicUser = (u) => ({
   _id: u._id, username: u.username, email: u.email,
   level: u.level, diagnostic_status: u.diagnostic_status,
   profile: u.profile, statistics: u.statistics,
+  is_admin: isAdminUser(u),
 });
 
 router.post(

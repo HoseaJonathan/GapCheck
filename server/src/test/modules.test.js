@@ -95,6 +95,7 @@ describe('modules', () => {
     assert.equal(module.title, beginner[3].title);
     assert.equal('body' in module, false);
     assert.equal('quiz' in module, false);
+    assert.equal('references' in module, false);
     assert.equal(module.flagged_by_diagnostic, true);
     assert.deepEqual(siblings.map((s) => s.order), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
     assertNoKeys(res.body);
@@ -114,6 +115,8 @@ describe('modules', () => {
     assert.equal(module.quiz.length, beginner[2].quiz.length);
     assert.ok(module.quiz[0].question);
     assert.ok(module.quiz[0].options.length >= 3);
+    assert.ok(module.references.length > 0);
+    assert.ok(module.references.every((r) => r.title && r.publisher && r.url && r.accessed_at));
     assert.equal(module.flagged_by_diagnostic, true);
     assertNoKeys(res.body);
 
@@ -121,7 +124,7 @@ describe('modules', () => {
     assert.deepEqual(siblings.map((s) => s.progress_percent), [100, 50, 0, 0, 0, 0, 0, 0, 0]);
     assert.deepEqual(siblings.map((s) => s.locked), [false, false, true, true, true, true, true, true, true]);
     assert.deepEqual(siblings[0].quiz_status, { attempts: 1, best_score: 1, passed: true });
-    assert.ok(siblings.every((s) => !('body' in s) && !('quiz' in s)));
+    assert.ok(siblings.every((s) => !('body' in s) && !('quiz' in s) && !('references' in s)));
   });
 
   it('start: 403 on a locked module; 50 on first open; never lowers a completed module', async () => {

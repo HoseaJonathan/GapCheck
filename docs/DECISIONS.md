@@ -208,6 +208,7 @@ Nilai `verdict` diperluas menjadi empat: `Accepted`, `Wrong Answer`,
 | `body` | Array of Object | Isi materi berupa blok teks, blok kode, dan kotak penjelasan. |
 | `quiz` | Array of Object | Soal pemahaman di akhir modul `{ question, options, correct_answer, explanation }`. `correct_answer` dan `explanation` tidak pernah dikirim ke klien kecuali pada respons percobaan yang lulus. |
 | `estimated_minutes` | Number | Perkiraan waktu penyelesaian. |
+| `references` | Array of Object | Sumber materi `{ title, publisher, url, accessed_at }`. Setiap klaim teknis pada `body` dan `quiz` diverifikasi terhadap dokumentasi resmi ini. Seperti `body`, field ini tidak dikirim untuk modul yang masih terkunci. |
 | `requires` | ObjectId | Modul prasyarat dalam path yang sama, atau `null` untuk modul pertama. Menggantikan `unlock_rule`: status terkunci dihitung dari field ini dan progres pengguna, tidak disimpan. |
 
 ### C4. Tabel baru `progress`
@@ -305,3 +306,86 @@ peserta mengirim ulang jawaban. Tulis bersama keputusan A1.
   lulus" karena itu tidak murni mengukur pemahaman; percobaan yang banyak dan
   cepat berturut-turut lebih mungkin menandakan penebakan. Tafsirkan metrik ini
   bersama selang waktu antarpercobaan (`submitted_at` di `quiz_attempts`).
+
+## E. Sumber materi modul (untuk BAB 3 dan Daftar Pustaka)
+
+### Narasi usulan: Penyusunan materi modul
+
+Materi setiap modul pembelajaran disusun berdasarkan dokumentasi resmi dari
+teknologi yang dibahas, yaitu MDN Web Docs untuk JavaScript dan Web API,
+dokumentasi resmi Express.js, Node.js, dan React, serta RFC 9110 untuk semantik
+kode status HTTP. Setiap klaim teknis pada isi materi dan pada pembahasan kuis
+diverifikasi terhadap sumber tersebut sebelum dimasukkan ke dalam sistem.
+Sumber yang digunakan disimpan pada field `references` di koleksi `modules` dan
+ditampilkan di akhir halaman modul, sehingga pengguna dapat menelusuri penjelasan
+asli dari setiap konsep. Karena aplikasi dibangun dengan Express 5, materi yang
+perilakunya berbeda antarversi menyebutkan versi yang dimaksud secara eksplisit.
+
+### Koreksi hasil verifikasi (25 Oktober 2026)
+
+- Modul beginner 9: `fetch` tidak hanya reject karena kegagalan jaringan, tetapi
+  juga ketika request dibatalkan dengan `AbortController` (MDN, *Window: fetch()
+  method*). Teks materi dan pembahasan kuis diperbaiki.
+- Modul intermediate 2: `req.body` bernilai `undefined` tanpa body parser hanya
+  berlaku di Express 5; Express 4 mengisinya dengan `{}` (Express.js, *Upgrade to
+  Express v5*). Soal dan pembahasan kini menyebutkan Express 5. Kunci jawaban tidak
+  berubah.
+
+### Daftar Pustaka (draf, format diakses 25 Oktober 2026)
+
+Sesuaikan dengan gaya sitasi yang dipakai di dokumen proposal.
+
+- Brooker, M. (2015, 4 Maret). *Exponential backoff and jitter*. AWS Architecture Blog. https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
+- Express.js. (t.t.). *Application object* (5.x). https://expressjs.com/en/5x/api/application.html
+- Express.js. (t.t.). *Error handling*. https://expressjs.com/en/guide/error-handling.html
+- Express.js. (t.t.). *Routing*. https://expressjs.com/en/guide/routing.html
+- Express.js. (t.t.). *Upgrade to Express v5*. https://expressjs.com/en/guide/migrating-5.html
+- Express.js. (t.t.). *Using middleware*. https://expressjs.com/en/guide/using-middleware.html
+- Fielding, R., Nottingham, M., & Reschke, J. (Ed.). (2022). *RFC 9110: HTTP semantics*. IETF. https://httpwg.org/specs/rfc9110.html
+- MDN Web Docs. (t.t.). *Array.prototype.filter()*. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter
+- MDN Web Docs. (t.t.). *Array.prototype.find()*. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/find
+- MDN Web Docs. (t.t.). *Array.prototype.map()*. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map
+- MDN Web Docs. (t.t.). *Array.prototype.reduce()*. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce
+- MDN Web Docs. (t.t.). *Arrow function expressions*. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
+- MDN Web Docs. (t.t.). *async function*. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function
+- MDN Web Docs. (t.t.). *const*. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/const
+- MDN Web Docs. (t.t.). *Document: querySelector() method*. https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector
+- MDN Web Docs. (t.t.). *Equality comparisons and sameness*. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Equality_comparisons_and_sameness
+- MDN Web Docs. (t.t.). *EventTarget: addEventListener() method*. https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
+- MDN Web Docs. (t.t.). *Expressions and operators*. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_operators
+- MDN Web Docs. (t.t.). *Functions*. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Functions
+- MDN Web Docs. (t.t.). *HTTP response status codes*. https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status
+- MDN Web Docs. (t.t.). *JavaScript data types and data structures*. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Data_structures
+- MDN Web Docs. (t.t.). *Node: textContent property*. https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent
+- MDN Web Docs. (t.t.). *Promise.all()*. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all
+- MDN Web Docs. (t.t.). *Promise.allSettled()*. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/allSettled
+- MDN Web Docs. (t.t.). *typeof*. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/typeof
+- MDN Web Docs. (t.t.). *Using promises*. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises
+- MDN Web Docs. (t.t.). *Window: fetch() method*. https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch
+- Node.js. (t.t.). *Command-line API: --unhandled-rejections*. https://nodejs.org/api/cli.html#--unhandled-rejectionsmode
+- React. (t.t.). *Conditional rendering*. https://react.dev/learn/conditional-rendering
+- React. (t.t.). *State as a snapshot*. https://react.dev/learn/state-as-a-snapshot
+- React. (t.t.). *Synchronizing with effects*. https://react.dev/learn/synchronizing-with-effects
+- React. (t.t.). *useEffect*. https://react.dev/reference/react/useEffect
+- typescript-eslint. (t.t.). *return-await*. https://typescript-eslint.io/rules/return-await/
+
+### Jalur New: susunan Bloom
+
+Jalur New kini berisi enam modul yang naik dari tingkat *Remember*, sesuai
+pemetaan New → Remember pada metodologi: (1) Variabel, tipe data, dan operator
+dasar — *remember*; (2) Fungsi: parameter, return, dan arrow function —
+*remember*; (3) Perbandingan == vs === dan tipe data — *understand*; (4) Memilih
+elemen dan menangani event di DOM — *apply*; (5) Method array: map, filter, dan
+find — *understand*; (6) reduce dan menampilkan hasil array ke DOM — *apply*.
+Setiap langkah jalur (Dasar JavaScript, Manipulasi DOM, Method array) berakhir
+pada tingkat *apply*. Jumlah modul jalur New (6) sesuai mockup; jalur
+Intermediate masih 2 dari 7 dan belum memuat modul *analyze*.
+
+### Akun admin (alat pengembangan, bukan fitur skripsi)
+
+Akun `admin@gapcheck.test` (field `users.role = "admin"`) membuka semua modul,
+menampilkan kunci kuis, tidak mengunci asesmen ulang, dan dapat berpindah jalur
+lewat `PATCH /admin/level`. Akun ini hanya untuk pengujian dan demo, dinonaktifkan
+ketika `NODE_ENV=production` (`ADMIN_ENABLED`), dan **tidak** dimasukkan ke BAB 3.
+Bila penguji menanyakannya, posisinya sama dengan data seed: perangkat bantu
+pengembangan, bukan aktor sistem.

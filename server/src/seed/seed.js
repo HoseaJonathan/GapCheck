@@ -76,6 +76,7 @@ export async function seed() {
   const password_hash = await bcrypt.hash(PASSWORD, 10);
   const hosea = await User.create({ ...userData.hosea, password_hash });
   const nadia = await User.create({ ...userData.nadia, password_hash });
+  const admin = await User.create({ ...userData.admin, password_hash });
 
   // Ordered insert: ObjectIds rise in array order, which is the session order.
   const inserted = await Question.insertMany(questionData);
@@ -129,7 +130,7 @@ export async function seed() {
   await finishSession(session, CANONICAL_FINISH);
 
   return {
-    users: { hosea: await User.findById(hosea._id), nadia },
+    users: { hosea: await User.findById(hosea._id), nadia, admin },
     questions,
   };
 }

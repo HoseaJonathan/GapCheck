@@ -9,6 +9,25 @@ const NAV = [
   { to: '/assessment', label: 'Assessment' },
 ];
 
+/** Dev/demo only: the admin picks which level's path the whole app shows. A full reload refetches every screen. */
+function AdminLevel({ level }) {
+  const change = async (e) => {
+    await api.setAdminLevel(e.target.value);
+    window.location.assign('/');
+  };
+  return (
+    <label className="chip" title="Admin: pilih jalur belajar" style={{ display: 'inline-flex', gap: 4, alignItems: 'center', whiteSpace: 'nowrap' }}>
+      ADMIN
+      <select value={level ?? ''} onChange={change} className="mono" aria-label="Jalur belajar admin"
+        style={{ font: 'inherit', border: 'none', background: 'transparent', cursor: 'pointer', padding: 0 }}>
+        <option value="new">NEW</option>
+        <option value="beginner">BEGINNER</option>
+        <option value="intermediate">INTERMEDIATE</option>
+      </select>
+    </label>
+  );
+}
+
 export default function Shell() {
   const { data } = useApi(() => api.overview(), []);
   const streak = data?.puzzle?.streak_days ?? 0;
@@ -34,7 +53,7 @@ export default function Shell() {
             ))}
           </nav>
           <div className="search"><span>Search</span><kbd>⌘K</kbd></div>
-          <span className="chip">{streak}-DAY STREAK</span>
+          {api.user?.is_admin ? <AdminLevel level={data?.level ?? api.user.level} /> : <span className="chip">{streak}-DAY STREAK</span>}
           <div className="avatar" title={api.user?.email}>{initials}</div>
           <button type="button" className="btn--link label" onClick={logout}>KELUAR</button>
         </div>

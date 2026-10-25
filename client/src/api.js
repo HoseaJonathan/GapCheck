@@ -59,6 +59,12 @@ export const api = {
   submitQuiz: (id, answers) => request(`/modules/${id}/quiz/attempts`, { method: 'POST', body: JSON.stringify({ answers }) }),
   quizAttempts: (id) => request(`/modules/${id}/quiz/attempts`),
   submit: (payload) => request('/submit', { method: 'POST', body: JSON.stringify(payload) }),
+  /** Admin (dev/demo) only: moves the admin to another level's learning path. */
+  async setAdminLevel(level) {
+    const data = await request('/admin/level', { method: 'PATCH', body: JSON.stringify({ level }) });
+    localStorage.setItem(USER_KEY, JSON.stringify({ ...readUser(), level: data.level }));
+    return data;
+  },
 };
 
 /**

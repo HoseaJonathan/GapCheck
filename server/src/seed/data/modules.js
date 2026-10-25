@@ -18,6 +18,47 @@ const text = (t) => ({ type: 'text', text: t });
 const callout = (t, tone) => (tone ? { type: 'callout', tone, text: t } : { type: 'callout', text: t });
 const code = (label, src) => ({ type: 'code', label, code: src });
 
+const ref = (title, publisher, url) => ({ title, publisher, url, accessed_at: ACCESSED });
+
+// Official sources every module's body and quiz were checked against, on this date.
+const ACCESSED = '2026-10-25';
+const MDN = 'MDN Web Docs';
+const SRC = {
+  promises: ref('Using promises', MDN, 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises'),
+  asyncFn: ref('async function', MDN, 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function'),
+  promiseAll: ref('Promise.all()', MDN, 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all'),
+  allSettled: ref('Promise.allSettled()', MDN, 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/allSettled'),
+  returnAwait: ref('return-await', 'typescript-eslint', 'https://typescript-eslint.io/rules/return-await/'),
+  nodeCli: ref('Command-line API: --unhandled-rejections', 'Node.js', 'https://nodejs.org/api/cli.html#--unhandled-rejectionsmode'),
+  expressErrors: ref('Error Handling', 'Express.js', 'https://expressjs.com/en/guide/error-handling.html'),
+  expressRouting: ref('Routing', 'Express.js', 'https://expressjs.com/en/guide/routing.html'),
+  expressApp: ref('Application Object (app.use, query parser)', 'Express.js', 'https://expressjs.com/en/5x/api/application.html'),
+  expressMiddleware: ref('Using middleware', 'Express.js', 'https://expressjs.com/en/guide/using-middleware.html'),
+  express5: ref('Upgrade to Express v5', 'Express.js', 'https://expressjs.com/en/guide/migrating-5.html'),
+  httpStatus: ref('HTTP response status codes', MDN, 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status'),
+  rfc9110: ref('RFC 9110: HTTP Semantics', 'IETF', 'https://httpwg.org/specs/rfc9110.html'),
+  reactState: ref('State as a Snapshot', 'React', 'https://react.dev/learn/state-as-a-snapshot'),
+  reactConditional: ref('Conditional Rendering', 'React', 'https://react.dev/learn/conditional-rendering'),
+  reactEffects: ref('Synchronizing with Effects', 'React', 'https://react.dev/learn/synchronizing-with-effects'),
+  useEffect: ref('useEffect', 'React', 'https://react.dev/reference/react/useEffect'),
+  fetch: ref('Window: fetch() method', MDN, 'https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch'),
+  equality: ref('Equality comparisons and sameness', MDN, 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Equality_comparisons_and_sameness'),
+  typeofOp: ref('typeof', MDN, 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/typeof'),
+  querySelector: ref('Document: querySelector() method', MDN, 'https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector'),
+  addEventListener: ref('EventTarget: addEventListener() method', MDN, 'https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener'),
+  backoff: ref('Exponential Backoff And Jitter (Brooker, 2015)', 'AWS Architecture Blog', 'https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/'),
+  constStmt: ref('const', MDN, 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/const'),
+  dataTypes: ref('JavaScript data types and data structures', MDN, 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Data_structures'),
+  operators: ref('Expressions and operators', MDN, 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_operators'),
+  functions: ref('Functions', MDN, 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Functions'),
+  arrowFn: ref('Arrow function expressions', MDN, 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions'),
+  arrayMap: ref('Array.prototype.map()', MDN, 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map'),
+  arrayFilter: ref('Array.prototype.filter()', MDN, 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter'),
+  arrayFind: ref('Array.prototype.find()', MDN, 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/find'),
+  arrayReduce: ref('Array.prototype.reduce()', MDN, 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce'),
+  textContent: ref('Node: textContent property', MDN, 'https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent'),
+};
+
 const KEYS = ['a', 'b', 'c', 'd'];
 /** Keys follow the option order, so the correct letter is chosen by where the right option is placed. */
 const item = (question, options, correct_answer, explanation) => ({
@@ -32,6 +73,7 @@ const item = (question, options, correct_answer, explanation) => ({
 const beginner = [
   {
     order: 1, title: 'Callback, Promise, dan async/await', topic: 'async', bloom_level: 'understand', estimated_minutes: 25,
+    references: [SRC.promises, SRC.asyncFn],
     body: [
       lead('JavaScript menjalankan kode di satu thread. Operasi yang butuh waktu, seperti membaca file, request jaringan, atau timer, tidak ditunggu dengan memblokir program. Hasilnya diserahkan belakangan lewat callback, Promise, atau async/await. Modul ini membandingkan ketiganya.'),
       text('Callback adalah fungsi yang dikirim sebagai argumen lalu dipanggil ketika hasilnya siap. Node.js memakai konvensi error-first: argumen pertama callback berisi error (atau null kalau berhasil), argumen kedua berisi data.'),
@@ -103,6 +145,7 @@ compute().then((result) => console.log('await:', result)); // await: 20`),
   },
   {
     order: 2, title: 'Error handling pada kode asinkron', topic: 'async', bloom_level: 'understand', estimated_minutes: 20,
+    references: [SRC.promises, SRC.nodeCli, SRC.expressErrors],
     body: [
       lead('Di kode sinkron, error naik lewat call stack sampai bertemu try/catch. Di kode asinkron, error berubah menjadi Promise yang reject. Error itu hanya tertangani kalau ada yang memasang .catch atau meng-await Promise tersebut di dalam try/catch. Modul ini membahas ke mana error asinkron pergi dan bagaimana meneruskannya ke tempat yang bisa menanganinya.'),
       text('throw di dalam fungsi async tidak langsung meledak di baris pemanggil. Yang terjadi, Promise hasil fungsi itu menjadi reject. Hal yang sama berlaku untuk throw di dalam callback .then. Ada dua cara setara untuk menanganinya: .catch di ujung rantai, atau await di dalam try/catch. Blok finally berjalan dalam kedua kasus, baik berhasil maupun gagal.'),
@@ -186,6 +229,7 @@ handler({}, {}, (err) => console.log('next menerima:', err.message)); // next me
   },
   {
     order: 3, title: 'Kenapa try/catch tidak menangkap error Promise', topic: 'async', bloom_level: 'understand', estimated_minutes: 18,
+    references: [SRC.promises, SRC.returnAwait],
     body: [
       lead('Kode yang tampak terlindungi try/catch ternyata bisa tetap meloloskan error. Penyebabnya, try/catch hanya menjaga kode yang berjalan selama blok try masih aktif. Modul ini menjelaskan kapan error Promise lolos, dan bagaimana await membuat try/catch bekerja, termasuk di dalam loop retry.'),
       code('Sebelum', "try {\n  fetchData().then(render);\n} catch (err) {\n  console.error(err);\n}"),
@@ -264,6 +308,7 @@ tryTimes(flaky, 3).then((result) => console.log(result, 'setelah', calls, 'perco
   },
   {
     order: 4, title: 'Menjalankan Promise secara paralel (Promise.all, Promise.allSettled)', topic: 'async', bloom_level: 'apply', estimated_minutes: 20,
+    references: [SRC.promiseAll, SRC.allSettled],
     body: [
       lead('Kalau beberapa operasi asinkron tidak saling bergantung, menunggunya satu per satu membuang waktu. Promise.all dan Promise.allSettled menjalankan semuanya bersamaan, lalu menunggu hasilnya sekaligus.'),
       text('await di dalam loop for membuat setiap request menunggu request sebelumnya selesai. Jika tiga request masing-masing butuh 100 ms, totalnya sekitar 300 ms. Kalau semua request dimulai lebih dulu lalu ditunggu bersama, totalnya hanya sekitar 100 ms.'),
@@ -341,6 +386,7 @@ loadDashboard();
   },
   {
     order: 5, title: 'Routing dan parameter di Express (req.params, req.query)', topic: 'rest-api', bloom_level: 'understand', estimated_minutes: 20,
+    references: [SRC.expressRouting, SRC.expressApp],
     body: [
       lead('Express mencocokkan setiap request dengan rute berdasarkan method dan path. Bagian path yang diawali titik dua menjadi req.params, sedangkan bagian setelah tanda tanya menjadi req.query. Nilai di req.params selalu string; nilai di req.query juga string, kecuali kalau nama parameternya berulang.'),
       text('Path parameter dipakai untuk identitas resource, misalnya /users/42 untuk user dengan id 42. Query string dipakai untuk opsi yang tidak mengubah identitas resource, seperti filter, urutan, atau halaman: /users?active=true&page=2.'),
@@ -404,6 +450,7 @@ app.listen(3000);
   },
   {
     order: 6, title: 'Validasi query parameter', topic: 'rest-api', bloom_level: 'apply', estimated_minutes: 22,
+    references: [SRC.expressApp, SRC.httpStatus],
     body: [
       lead('Query parameter datang dari pengguna, sehingga isinya bisa kosong, salah ketik, atau berisi nilai yang tidak terduga. Handler yang baik memeriksa nilainya lebih dulu, membalas 400 untuk nilai yang salah, dan baru setelah itu mengambil data.'),
       text('Ada tiga kasus yang perlu dibedakan. Kalau parameter tidak dikirim, nilainya undefined dan handler memakai perilaku default (misalnya tanpa filter). Kalau parameter dikirim tetapi nilainya di luar daftar yang diizinkan, termasuk string kosong, handler membalas 400. Kalau nilainya valid, handler menerapkan filter.'),
@@ -476,6 +523,7 @@ GET /books?level=a&level=b   -> 400 (nilainya array, bukan string)`),
   },
   {
     order: 7, title: 'Status code dan middleware error', topic: 'rest-api', bloom_level: 'apply', estimated_minutes: 22,
+    references: [SRC.httpStatus, SRC.rfc9110, SRC.expressErrors],
     body: [
       lead('Status code memberi tahu client apa yang terjadi tanpa harus membaca isi respons. Middleware error mengumpulkan semua kegagalan ke satu tempat, sehingga setiap error dibalas dengan format yang sama.'),
       text('Status dibagi per kelompok. 2xx berarti berhasil: 200 OK, 201 Created untuk data baru, 204 No Content. 4xx berarti kesalahan di sisi client: 400 Bad Request untuk input yang tidak valid, 401 Unauthorized kalau belum login atau token salah, 403 Forbidden kalau sudah login tetapi tidak berhak, 404 Not Found kalau resource tidak ada. 5xx berarti kesalahan di sisi server, misalnya 500 Internal Server Error.'),
@@ -560,6 +608,7 @@ app.listen(3000);
   },
   {
     order: 8, title: 'State dan render kondisional', topic: 'react', bloom_level: 'understand', estimated_minutes: 20,
+    references: [SRC.reactState, SRC.reactConditional],
     body: [
       lead('Komponen React adalah fungsi yang menghasilkan tampilan dari props dan state. Ketika state berubah lewat setter, React memanggil ulang fungsi itu dan memperbarui DOM. Render kondisional menentukan apa yang tampil berdasarkan nilai-nilai tersebut.'),
       text('useState mengembalikan pasangan [nilai, setter]. Memanggil setter menjadwalkan render ulang. Variabel pada render yang sedang berjalan tidak ikut berubah; nilai baru baru terlihat pada render berikutnya. State juga tidak boleh diubah langsung (mutasi), karena React tidak tahu ada perubahan dan tidak merender ulang.'),
@@ -630,6 +679,7 @@ function Counter() {
   },
   {
     order: 9, title: 'Mengambil data dengan useEffect (loading, error, cleanup)', topic: 'react', bloom_level: 'apply', estimated_minutes: 25,
+    references: [SRC.reactEffects, SRC.useEffect, SRC.fetch],
     body: [
       lead('Data dari server datang setelah komponen tampil pertama kali. useEffect menjalankan kode setelah render, sehingga cocok untuk memulai fetch. Komponen yang rapi menangani tiga keadaan, yaitu sedang memuat, gagal, dan berhasil, serta membatalkan request yang sudah tidak dibutuhkan.'),
       text('Argumen kedua useEffect adalah dependency array. Dengan [] efek berjalan sekali setelah komponen tampil. Dengan [userId] efek berjalan lagi setiap kali userId berubah. Tanpa array, efek berjalan setelah setiap render. Untuk fetch, ini biasanya bug: fetch memanggil setState, setState memicu render, lalu render memicu fetch lagi tanpa henti.'),
@@ -669,7 +719,7 @@ function UserCard({ userId }) {
   if (error) return <p role="alert">Gagal memuat: {error}</p>;
   return <h2>{user.name}</h2>;
 }`),
-      text('fetch hanya reject untuk kegagalan jaringan. Respons 404 atau 500 tetap membuat Promise resolve, dengan res.ok bernilai false. Karena itu res.ok harus diperiksa sendiri, seperti pada contoh di atas.'),
+      text('fetch hanya reject ketika request itu sendiri gagal, misalnya karena kegagalan jaringan atau karena dibatalkan lewat AbortController (dengan error bernama AbortError). Respons 404 atau 500 tetap membuat Promise resolve, dengan res.ok bernilai false. Karena itu res.ok harus diperiksa sendiri, seperti pada contoh di atas.'),
       callout('Jangan menulis useEffect(async () => ...). Fungsi async mengembalikan Promise, sedangkan React mengharapkan efek mengembalikan fungsi cleanup atau tidak mengembalikan apa pun. Buat fungsi async di dalam efek, lalu panggil.', 'warn'),
       code('Fungsi async di dalam efek', `import { useEffect, useState } from 'react';
 
@@ -726,7 +776,7 @@ function UserName({ userId }) {
           'Tidak pernah selesai',
         ],
         'b',
-        'fetch hanya reject ketika request gagal di tingkat jaringan. Status HTTP apa pun, termasuk 404 dan 500, tetap resolve, jadi kode harus memeriksa res.ok atau res.status sendiri.',
+        'fetch hanya reject ketika request itu sendiri gagal, misalnya karena jaringan atau dibatalkan. Status HTTP apa pun, termasuk 404 dan 500, tetap resolve, jadi kode harus memeriksa res.ok atau res.status sendiri.',
       ),
       item(
         'Kapan fungsi cleanup yang dikembalikan oleh efek dijalankan?',
@@ -757,7 +807,123 @@ function UserName({ userId }) {
 
 const newcomer = [
   {
-    order: 1, title: 'Perbandingan == vs === dan tipe data', topic: 'javascript', bloom_level: 'understand', estimated_minutes: 15,
+    order: 1, title: 'Variabel, tipe data, dan operator dasar', topic: 'javascript', bloom_level: 'remember', estimated_minutes: 15,
+    references: [SRC.constStmt, SRC.dataTypes, SRC.operators],
+    body: [
+      lead('Program menyimpan data di dalam variabel, yaitu nama yang menunjuk ke sebuah nilai. Modul ini mengenalkan tiga hal yang dipakai di semua modul berikutnya: cara membuat variabel dengan const dan let, tujuh tipe data primitif, dan operator dasar untuk menghitung serta membandingkan.'),
+      text('Variabel dibuat dengan const atau let. Variabel const tidak bisa di-assign ulang dan wajib diberi nilai saat dibuat. Variabel let boleh di-assign ulang. Keduanya hanya berlaku di dalam blok kurung kurawal tempat ia dideklarasikan. Kata kunci var adalah cara lama yang aturannya berbeda; di kode modern, pakai const secara default dan let hanya kalau nilainya memang perlu diganti.'),
+      code('const dan let', `const nama = 'Ayu';
+let umur = 17;
+umur = 18;            // boleh: let bisa di-assign ulang
+// nama = 'Budi';     // TypeError: const tidak bisa di-assign ulang
+// const kota;        // SyntaxError: const wajib diberi nilai saat dibuat
+
+const hobi = ['membaca'];
+hobi.push('berenang'); // boleh: isi array berubah, variabelnya tetap menunjuk array yang sama
+console.log(hobi);     // ['membaca', 'berenang']`),
+      callout('const melarang assign ulang, bukan perubahan isi. Array atau object yang disimpan di const tetap bisa ditambah dan diubah isinya.'),
+      text('JavaScript punya tujuh tipe primitif: string (teks), number (angka), boolean (true atau false), undefined, null, bigint (bilangan bulat sangat besar), dan symbol. Selain itu, semua nilai adalah object, termasuk array dan fungsi. undefined adalah nilai bawaan variabel yang dibuat tanpa nilai, misalnya let x;. null dipakai untuk menandai bahwa sebuah nilai sengaja dikosongkan.'),
+      code('Operator dasar', `console.log(7 + 2);          // 9
+console.log(7 - 2);          // 5
+console.log(7 % 2);          // 1   (sisa bagi)
+console.log(2 ** 3);         // 8   (pangkat)
+console.log('7' + 2);        // '72' (+ dengan string menyambung teks)
+console.log(7 > 2 && 2 > 5); // false (&& bernilai true hanya kalau keduanya true)
+console.log(!true);          // false
+
+let skor = 10;
+skor += 5;                   // sama dengan skor = skor + 5
+console.log(skor);           // 15`),
+    ],
+    quiz: [
+      item(
+        'Kata kunci mana yang dipakai untuk variabel yang tidak boleh di-assign ulang?',
+        ['let', 'var', 'const', 'function'],
+        'c',
+        'Variabel const tidak bisa di-assign ulang, dan mencobanya melempar TypeError. let dan var boleh di-assign ulang, sedangkan function dipakai untuk membuat fungsi.',
+      ),
+      item(
+        "Apa hasil '7' + 2?",
+        ['9', "'72'", 'NaN', 'Error, karena tipenya berbeda'],
+        'b',
+        "Kalau salah satu operand + adalah string, JavaScript menyambung teks, bukan menjumlah. Angka 2 diubah menjadi string, sehingga hasilnya '72'.",
+      ),
+      item(
+        'Mana yang bukan tipe data primitif di JavaScript?',
+        ['string', 'boolean', 'array', 'undefined'],
+        'c',
+        'Tujuh tipe primitif adalah string, number, boolean, undefined, null, bigint, dan symbol. Array termasuk object.',
+      ),
+      item(
+        'Apa hasil 7 % 2?',
+        ['1', '3.5', '0', '14'],
+        'a',
+        'Operator % menghasilkan sisa bagi. 7 dibagi 2 adalah 3 dengan sisa 1. 3.5 adalah hasil 7 / 2, dan 14 adalah hasil 7 * 2.',
+      ),
+    ],
+  },
+  {
+    order: 2, title: 'Fungsi: parameter, return, dan arrow function', topic: 'javascript', bloom_level: 'remember', estimated_minutes: 20,
+    references: [SRC.functions, SRC.arrowFn],
+    body: [
+      lead('Fungsi adalah blok kode bernama yang bisa dipanggil berulang kali dengan data yang berbeda. Hampir semua kode di modul berikutnya, termasuk event listener dan method array, menerima fungsi. Modul ini mengenalkan istilah dan bentuk penulisannya.'),
+      text('Nama di dalam kurung saat fungsi dibuat disebut parameter. Nilai yang dikirim saat fungsi dipanggil disebut argumen. Pada function luas(sisi) { ... } dan luas(4), sisi adalah parameter dan 4 adalah argumen. Kata kunci return mengirim nilai kembali ke pemanggil sekaligus menghentikan fungsi. Fungsi yang selesai tanpa bertemu return mengembalikan undefined.'),
+      code('Deklarasi fungsi dan return', `function luasPersegi(sisi) {
+  return sisi * sisi;
+}
+console.log(luasPersegi(4)); // 16
+
+function sapa(nama) {
+  console.log('Halo, ' + nama);
+}
+const hasil = sapa('Ayu'); // tercetak: Halo, Ayu
+console.log(hasil);        // undefined, karena sapa tidak punya return`),
+      text('Arrow function adalah cara menulis fungsi yang lebih pendek. Kalau isinya satu ekspresi tanpa kurung kurawal, nilai ekspresi itu otomatis dikembalikan. Kalau memakai kurung kurawal, return harus ditulis sendiri. Kurung di sekitar parameter boleh dihilangkan hanya kalau parameternya satu. Parameter juga bisa diberi nilai default, yang dipakai ketika argumennya tidak dikirim.'),
+      code('Arrow function dan parameter default', `const tambah = (a, b) => a + b;             // return otomatis
+const kali = (a, b) => { return a * b; };   // pakai {} harus menulis return
+const kuadrat = x => x * x;                 // satu parameter: kurung boleh dihilangkan
+
+function salam(nama = 'teman') {
+  return \`Halo, \${nama}\`;
+}
+
+console.log(tambah(2, 3)); // 5
+console.log(kali(2, 3));   // 6
+console.log(kuadrat(4));   // 16
+console.log(salam());      // Halo, teman`),
+      callout('const f = (a, b) => { a + b }; mengembalikan undefined. Kurung kurawal membuat blok, dan blok itu tidak punya return. Hapus kurung kurawalnya atau tulis return a + b.', 'warn'),
+      text('Variabel yang dibuat di dalam fungsi hanya bisa dipakai di dalam fungsi itu. Membacanya dari luar fungsi menghasilkan ReferenceError.'),
+    ],
+    quiz: [
+      item(
+        'Apa nilai yang dikembalikan oleh fungsi yang selesai tanpa bertemu return?',
+        ['null', '0', 'undefined', "String kosong ''"],
+        'c',
+        'Fungsi tanpa return tetap mengembalikan nilai, yaitu undefined. Karena itu const hasil = sapa("Ayu") berisi undefined.',
+      ),
+      item(
+        'Dengan const tambah = (a, b) => a + b;, apa hasil tambah(2, 3)?',
+        ['5', "'23'", 'undefined'],
+        'a',
+        'Isi arrow function ini satu ekspresi tanpa kurung kurawal, sehingga a + b otomatis dikembalikan. Kedua argumen adalah number, jadi hasilnya 5.',
+      ),
+      item(
+        'Dengan const kali = (a, b) => { a * b };, apa hasil kali(2, 3)?',
+        ['6', 'undefined', 'Error sintaks', 'NaN'],
+        'b',
+        'Kurung kurawal membuat blok, dan blok itu tidak punya return. Perkaliannya dihitung tetapi tidak dikembalikan, sehingga hasilnya undefined.',
+      ),
+      item(
+        "Pada function sapa(nama) { ... } yang dipanggil dengan sapa('Ayu'), disebut apakah 'Ayu'?",
+        ['Parameter', 'Nilai return', 'Nama fungsi', 'Argumen'],
+        'd',
+        "Nilai yang dikirim saat memanggil fungsi disebut argumen. nama adalah parameter, yaitu nama yang menerima argumen itu di dalam fungsi.",
+      ),
+    ],
+  },
+  {
+    order: 3, title: 'Perbandingan == vs === dan tipe data', topic: 'javascript', bloom_level: 'understand', estimated_minutes: 15,
+    references: [SRC.equality, SRC.typeofOp],
     body: [
       lead('JavaScript punya dua operator kesamaan. === membandingkan nilai sekaligus tipe tanpa konversi. == mengonversi tipe lebih dulu sebelum membandingkan, dan aturan konversinya sering mengejutkan. Untuk memahami bedanya, kenali dulu tipe data yang ada.'),
       text('Tipe primitif di JavaScript adalah string, number, boolean, undefined, null, bigint, dan symbol. Selain itu semuanya object, termasuk array dan fungsi. Operator typeof menunjukkan tipe sebuah nilai, dengan satu jebakan lama: typeof null menghasilkan "object".'),
@@ -815,7 +981,8 @@ console.log(NaN === NaN);        // false (pakai Number.isNaN)`),
     ],
   },
   {
-    order: 2, title: 'Memilih elemen dan menangani event di DOM', topic: 'dom', bloom_level: 'apply', estimated_minutes: 20,
+    order: 4, title: 'Memilih elemen dan menangani event di DOM', topic: 'dom', bloom_level: 'apply', estimated_minutes: 20,
+    references: [SRC.querySelector, SRC.addEventListener],
     body: [
       lead('DOM adalah representasi halaman HTML sebagai pohon objek yang bisa dibaca dan diubah oleh JavaScript. Ada dua keterampilan dasar: menemukan elemen, lalu bereaksi ketika pengguna berinteraksi dengannya.'),
       text('querySelector(selector) mengembalikan elemen pertama yang cocok dengan selector CSS, atau null kalau tidak ada. querySelectorAll(selector) mengembalikan NodeList berisi semua elemen yang cocok, yang bisa ditelusuri dengan forEach. getElementById(id) mengambil satu elemen berdasarkan id, ditulis tanpa tanda #.'),
@@ -896,6 +1063,141 @@ document.querySelector('form').addEventListener('submit', (event) => {
       ),
     ],
   },
+  {
+    order: 5, title: 'Method array: map, filter, dan find', topic: 'array-methods', bloom_level: 'understand', estimated_minutes: 20,
+    references: [SRC.arrayMap, SRC.arrayFilter, SRC.arrayFind],
+    body: [
+      lead('Data dari server hampir selalu datang sebagai array, misalnya daftar produk, pengguna, atau pesan. Daripada menulis loop for setiap kali, JavaScript menyediakan method yang menerima fungsi callback. Modul ini membahas tiga yang paling sering dipakai: map, filter, dan find.'),
+      text('map membuat array baru dengan panjang yang sama, berisi nilai yang dikembalikan callback untuk setiap elemen. filter membuat array baru yang hanya berisi elemen yang callback-nya bernilai truthy; kalau tidak ada yang lolos, hasilnya array kosong. find mengembalikan elemen pertama yang cocok, atau undefined kalau tidak ada. Ketiganya tidak mengubah array asal.'),
+      code('map, filter, dan find', `const produk = [
+  { nama: 'Pena', harga: 5000, stok: 12 },
+  { nama: 'Buku', harga: 20000, stok: 0 },
+  { nama: 'Map', harga: 8000, stok: 5 },
+];
+
+const nama = produk.map((p) => p.nama);
+console.log(nama);            // ['Pena', 'Buku', 'Map']
+
+const tersedia = produk.filter((p) => p.stok > 0);
+console.log(tersedia.length); // 2
+
+const buku = produk.find((p) => p.nama === 'Buku');
+console.log(buku.harga);      // 20000
+
+console.log(produk.find((p) => p.harga > 100000)); // undefined
+console.log(produk.length);   // 3: array asal tidak berubah`),
+      callout('Callback map harus mengembalikan nilai. produk.map((p) => { p.nama; }) menghasilkan [undefined, undefined, undefined], karena kurung kurawal tanpa return membuat setiap pemanggilan mengembalikan undefined.', 'warn'),
+      text('Pilih method dari bentuk hasil yang dibutuhkan. Kalau setiap elemen perlu diubah, pakai map. Kalau hanya sebagian elemen yang dibutuhkan, pakai filter, yang selalu menghasilkan array. Kalau yang dibutuhkan satu elemen, pakai find, yang menghasilkan elemen itu atau undefined. Karena map dan filter menghasilkan array, keduanya bisa dirangkai.'),
+      code('Merangkai filter dan map', `const namaTersedia = produk
+  .filter((p) => p.stok > 0)
+  .map((p) => p.nama.toUpperCase());
+
+console.log(namaTersedia); // ['PENA', 'MAP']`),
+    ],
+    quiz: [
+      item(
+        'Apa hasil [1, 2, 3].map((n) => n * 2)?',
+        ['[1, 2, 3]', '12', '[2, 4, 6]', '6'],
+        'c',
+        'map memanggil callback untuk setiap elemen dan menyusun hasilnya menjadi array baru dengan panjang yang sama: 1 × 2, 2 × 2, dan 3 × 2.',
+      ),
+      item(
+        'Apa hasil [5, 8, 12].find((n) => n > 20)?',
+        ['[]', 'undefined', 'null', '-1'],
+        'b',
+        'find mengembalikan elemen pertama yang cocok. Tidak ada angka di atas 20, sehingga hasilnya undefined. Array kosong [] adalah hasil filter untuk kasus yang sama.',
+      ),
+      item(
+        'Apa hasil [3, 7, 10].filter((n) => n > 5)?',
+        ['[7, 10]', '7', '[false, true, true]'],
+        'a',
+        'filter mempertahankan elemen yang callback-nya bernilai true dan selalu mengembalikan array. [false, true, true] adalah hasil map dengan callback yang sama.',
+      ),
+      item(
+        "Kenapa ['a', 'b'].map((s) => { s.toUpperCase(); }) menghasilkan [undefined, undefined]?",
+        [
+          'map tidak bisa dipakai untuk array berisi string',
+          'toUpperCase mengubah array asal sehingga map kehilangan datanya',
+          'map hanya memproses elemen pertama',
+          'Callback memakai kurung kurawal tanpa return, sehingga setiap pemanggilan mengembalikan undefined',
+        ],
+        'd',
+        'Nilai yang dikembalikan callback menjadi elemen array baru. Dengan kurung kurawal, return harus ditulis sendiri. Tulis (s) => s.toUpperCase() atau tambahkan return.',
+      ),
+    ],
+  },
+  {
+    order: 6, title: 'reduce dan menampilkan hasil array ke DOM', topic: 'array-methods', bloom_level: 'apply', estimated_minutes: 25,
+    references: [SRC.arrayReduce, SRC.textContent],
+    body: [
+      lead('Setelah data disaring dan diubah, langkah terakhir biasanya merangkumnya, misalnya menjadi total harga, lalu menampilkannya di halaman. Modul ini memakai reduce untuk merangkum dan DOM untuk menampilkan, sehingga semua yang sudah dipelajari di jalur ini dipakai bersama.'),
+      text('reduce(callback, nilaiAwal) memproses array menjadi satu nilai. Callback menerima akumulator (hasil sementara) dan elemen saat ini, lalu mengembalikan akumulator yang baru. nilaiAwal menjadi akumulator pertama. Kalau nilaiAwal tidak diberikan, elemen pertama array dipakai sebagai akumulator, dan reduce pada array kosong melempar TypeError. Karena itu, biasakan selalu memberi nilai awal.'),
+      code('Menghitung total dengan reduce', `const keranjang = [
+  { nama: 'Pena', harga: 5000, jumlah: 2 },
+  { nama: 'Buku', harga: 20000, jumlah: 1 },
+];
+
+const total = keranjang.reduce((sum, item) => sum + item.harga * item.jumlah, 0);
+console.log(total); // 30000
+
+console.log([].reduce((sum, n) => sum + n, 0)); // 0: array kosong mengembalikan nilai awal
+// [].reduce((sum, n) => sum + n);              // TypeError: array kosong tanpa nilai awal`),
+      callout("Tanpa nilai awal, keranjang.reduce((sum, item) => sum + item.harga * item.jumlah) salah: akumulator pertama adalah objek Pena, bukan angka, sehingga hasilnya string '[object Object]20000'.", 'warn'),
+      text('Untuk menampilkan hasilnya, buat elemen dengan document.createElement, isi teksnya dengan textContent, lalu masukkan ke halaman dengan append. Pakai textContent, bukan innerHTML, untuk teks biasa. innerHTML mem-parse isinya sebagai HTML, sehingga teks dari pengguna bisa berubah menjadi kode yang dijalankan (XSS).'),
+      code('Menampilkan daftar dan total', `<ul id="daftar"></ul>
+<p id="total"></p>
+
+<script>
+  const keranjang = [
+    { nama: 'Pena', harga: 5000, jumlah: 2 },
+    { nama: 'Buku', harga: 20000, jumlah: 1 },
+  ];
+  const daftar = document.querySelector('#daftar');
+
+  keranjang
+    .map((item) => \`\${item.nama} × \${item.jumlah}\`)
+    .forEach((teks) => {
+      const li = document.createElement('li');
+      li.textContent = teks;
+      daftar.append(li);
+    });
+
+  const total = keranjang.reduce((sum, item) => sum + item.harga * item.jumlah, 0);
+  document.querySelector('#total').textContent = \`Total: Rp\${total}\`; // Total: Rp30000
+</script>`),
+    ],
+    quiz: [
+      item(
+        'Apa hasil [2, 4, 6].reduce((sum, n) => sum + n, 10)?',
+        ['12', '22', '10', '[12, 22]'],
+        'b',
+        'Akumulator dimulai dari nilai awal 10, lalu ditambah 2, 4, dan 6. Hasilnya 22. Angka 12 adalah hasil kalau nilai awalnya 0.',
+      ),
+      item(
+        'Apa yang terjadi pada [].reduce((sum, n) => sum + n)?',
+        ['Menghasilkan 0', 'Menghasilkan undefined', 'Melempar TypeError, karena array kosong dan tidak ada nilai awal', 'Menghasilkan []'],
+        'c',
+        'Tanpa nilai awal, reduce memakai elemen pertama sebagai akumulator. Array kosong tidak punya elemen pertama, sehingga reduce melempar TypeError. Dengan nilai awal 0, hasilnya 0.',
+      ),
+      item(
+        'Kamu ingin menampilkan nama yang diketik pengguna di dalam sebuah <li>. Mana yang paling tepat?',
+        ['li.innerHTML = nama', 'li.textContent = nama', "li.setAttribute('nama', nama)"],
+        'b',
+        'textContent memasukkan nama sebagai teks biasa. innerHTML mem-parse isinya sebagai HTML, sehingga input seperti <img onerror=...> bisa dijalankan. setAttribute hanya membuat atribut dan tidak menampilkan teks.',
+      ),
+      item(
+        'Array nilai berisi [70, 85, 90]. Mana yang menghitung rata-ratanya?',
+        [
+          'nilai.map((n) => n / 3)',
+          'nilai.filter((n) => n > 0).length',
+          'nilai.find((n) => n)',
+          'nilai.reduce((s, n) => s + n, 0) / nilai.length',
+        ],
+        'd',
+        'reduce menjumlahkan semua nilai menjadi 245, lalu dibagi banyaknya nilai, 3. map menghasilkan array, filter(...).length menghitung jumlah elemen, dan find hanya mengembalikan elemen pertama.',
+      ),
+    ],
+  },
 ];
 
 // --- intermediate: Arsitektur aplikasi MERN (modul contoh) -------------------
@@ -903,6 +1205,7 @@ document.querySelector('form').addEventListener('submit', (event) => {
 const intermediate = [
   {
     order: 1, title: 'Retry dengan exponential backoff', topic: 'async', bloom_level: 'apply', estimated_minutes: 25,
+    references: [SRC.backoff, SRC.returnAwait, SRC.httpStatus],
     body: [
       lead('Request ke layanan lain kadang gagal sesaat karena jaringan putus, server sibuk, atau rate limit. Retry mengulang operasi yang gagal. Exponential backoff menggandakan jeda di setiap percobaan, supaya layanan yang sedang kewalahan diberi waktu untuk pulih.'),
       text('Rumusnya: jeda sebelum percobaan ke-(n+1) adalah base × 2^(n−1). Dengan base 100 ms, jedanya 100, 200, 400, 800 ms, dan seterusnya. Setelah percobaan terakhir tidak ada jeda, karena menunggu di titik itu hanya memperlambat kegagalan yang sudah pasti.'),
@@ -980,6 +1283,7 @@ console.log(delayWithJitter(3, 100)); // angka antara 200 dan 400`),
   },
   {
     order: 2, title: 'Menyusun middleware Express', topic: 'express', bloom_level: 'apply', estimated_minutes: 25,
+    references: [SRC.expressMiddleware, SRC.expressApp, SRC.express5],
     body: [
       lead('Di Express, setiap request melewati rangkaian middleware sesuai urutan pendaftarannya. Setiap middleware boleh membaca atau mengubah req dan res, mengakhiri request dengan mengirim respons, atau menyerahkannya ke middleware berikutnya dengan next().'),
       text('Middleware berbentuk (req, res, next). Ia punya tiga pilihan: mengirim respons, memanggil next() untuk lanjut, atau memanggil next(err) untuk melompat ke middleware error. Kalau tidak satu pun dilakukan, request menggantung sampai client timeout.'),
@@ -1021,7 +1325,7 @@ app.listen(3000);`),
 const app = express();
 
 app.post('/notes', (req, res) => {
-  res.json({ received: req.body }); // req.body undefined: parser belum dipasang untuk rute ini
+  res.json({ received: req.body }); // Express 5: req.body undefined karena parser belum dipasang untuk rute ini
 });
 app.use(express.json()); // terlambat untuk rute di atas
 
@@ -1040,10 +1344,10 @@ app.listen(3000);`),
         'Express tidak melanjutkan rantai dengan sendirinya. Middleware ini tidak mengirim respons dan tidak memanggil next, sehingga request berhenti di situ tanpa balasan.',
       ),
       item(
-        "app.use(express.json()) dipasang setelah app.post('/notes', handler). Client mengirim JSON ke POST /notes. Apa isi req.body di handler?",
+        "Di Express 5, app.use(express.json()) dipasang setelah app.post('/notes', handler). Client mengirim JSON ke POST /notes. Apa isi req.body di handler?",
         ['undefined', 'Objek hasil parse JSON', 'String JSON mentah', 'Objek kosong {}'],
         'a',
-        'Middleware hanya berlaku untuk request yang melewatinya sebelum rute. Handler /notes sudah mengirim respons sebelum express.json() sempat berjalan, sehingga req.body belum diisi.',
+        'Middleware hanya berlaku untuk request yang melewatinya sebelum rute. Handler /notes sudah mengirim respons sebelum express.json() sempat berjalan, sehingga req.body belum diisi. Express 5 membiarkannya undefined; Express 4 mengisinya dengan {}.',
       ),
       item(
         'Di mana middleware error sebaiknya dipasang?',

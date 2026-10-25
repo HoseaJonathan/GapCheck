@@ -47,11 +47,11 @@ bagian [Menjalankan](#menjalankan) di bawah.
 
 ### Prasyarat
 
-| Alat | Versi | Cek |
-| --- | --- | --- |
-| Git | apa saja | `git --version` |
-| Node.js | **≥ 22.9** (skrip npm memakai `--env-file-if-exists`) | `node -v` |
-| Docker Desktop | apa saja, **harus sudah dibuka** sebelum langkah 2 | `docker info` |
+| Alat           | Versi                                                          | Cek               |
+| -------------- | -------------------------------------------------------------- | ----------------- |
+| Git            | apa saja                                                       | `git --version` |
+| Node.js        | **≥ 22.9** (skrip npm memakai `--env-file-if-exists`) | `node -v`       |
+| Docker Desktop | apa saja, **harus sudah dibuka** sebelum langkah 2       | `docker info`   |
 
 ### Pertama kali
 
@@ -143,6 +143,11 @@ login mengisi akun hosea.
 - `nadia@gapcheck.test` — belum pernah mengerjakan diagnostik; untuk mencoba
   asesmen dari awal. Setelah diagnostik selesai, asesmen ulangnya terkunci
   sampai satu langkah path selesai.
+- `admin@gapcheck.test` — akun admin untuk pengembangan dan demo (bukan fitur
+  skripsi, mati saat `NODE_ENV=production`). Semua modul terbuka, kunci jawaban
+  dan pembahasan kuis tampil di bawah setiap soal, asesmen ulang tidak pernah
+  terkunci, dan pilihan **ADMIN** di bilah atas memindahkan jalur belajar antara
+  New, Beginner, dan Intermediate. Mulai di jalur New.
 
 `npm run seed` mengosongkan lalu mengisi ulang database, jadi aman dijalankan
 berulang kali — pakai juga untuk mengembalikan data demo ke kondisi awal.
@@ -175,14 +180,14 @@ mengembalikan semua data ke kondisi awal.
 
 ### Kalau ada masalah
 
-| Gejala | Penyebab dan solusi |
-| --- | --- |
+| Gejala                                                             | Penyebab dan solusi                                                                                                      |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
 | `MongoDB tidak terjangkau di mongodb://localhost:27017/gapcheck` | Docker Desktop belum dibuka atau container belum jalan. Buka Docker Desktop, lalu `docker compose up -d` di root repo. |
-| `docker: error during connect ... dockerDesktopLinuxEngine` | Docker Desktop belum selesai menyala. Tunggu sampai statusnya *running*, lalu ulangi. |
-| `bad option: --env-file-if-exists` | Node terlalu lama. Pasang Node.js 22.9 atau lebih baru. |
-| `EADDRINUSE` / `Port 5173 is in use` / port 4000 dipakai | Ada server lain (mungkin salinan repo lain) di port itu. Hentikan dengan Ctrl+C di terminalnya, lalu jalankan ulang. |
-| Halaman terbuka tetapi data kosong / login gagal | Database belum diisi. Jalankan `npm run seed` di `server/`. |
-| Hasil hosea berubah dari 168/290 | Ada sesi asesmen baru yang dibuka sebagai hosea. Jalankan `npm run seed` untuk mengembalikannya. |
+| `docker: error during connect ... dockerDesktopLinuxEngine`      | Docker Desktop belum selesai menyala. Tunggu sampai statusnya *running*, lalu ulangi.                                  |
+| `bad option: --env-file-if-exists`                               | Node terlalu lama. Pasang Node.js 22.9 atau lebih baru.                                                                  |
+| `EADDRINUSE` / `Port 5173 is in use` / port 4000 dipakai       | Ada server lain (mungkin salinan repo lain) di port itu. Hentikan dengan Ctrl+C di terminalnya, lalu jalankan ulang.     |
+| Halaman terbuka tetapi data kosong / login gagal                   | Database belum diisi. Jalankan `npm run seed` di `server/`.                                                          |
+| Hasil hosea berubah dari 168/290                                   | Ada sesi asesmen baru yang dibuka sebagai hosea. Jalankan `npm run seed` untuk mengembalikannya.                       |
 
 Untuk mematikan MongoDB: `docker compose down` (data tetap ada). Untuk
 menghapus datanya juga: `docker compose down -v`, lalu `npm run seed` lagi
@@ -191,11 +196,11 @@ setelah dinyalakan.
 ### Sebelum sidang
 
 - [ ] Jalankan ulang `npm run seed` (di `server/`) tepat sebelum demo, supaya
-      data hosea kembali ke sesi kanonik 168/290.
+  data hosea kembali ke sesi kanonik 168/290.
 - [ ] Jangan membuka layar Assessment sebagai hosea sebelum atau saat demo hasil.
-      Setiap kunjungan membuka sesi baru; sesi itu bisa kedaluwarsa, selesai
-      otomatis, lalu menggantikan hasil kanonik di Result, Progress, dan Overview.
-      Untuk mendemokan asesmen, pakai akun nadia.
+  Setiap kunjungan membuka sesi baru; sesi itu bisa kedaluwarsa, selesai
+  otomatis, lalu menggantikan hasil kanonik di Result, Progress, dan Overview.
+  Untuk mendemokan asesmen, pakai akun nadia.
 
 ## Data demo
 
@@ -243,16 +248,16 @@ docs/DECISIONS.md           kontradiksi mockup vs BAB 3 + usulan revisi tabel
 
 ## Status per fase
 
-| Fase                 | Status                                                                          |
-| -------------------- | ------------------------------------------------------------------------------- |
-| 0 Scaffold           | sebagian — docker-compose baru berisi MongoDB; Judge0 belum ditambahkan        |
-| 1 Design token       | selesai                                                                         |
-| 2 Auth               | selesai (MongoDB) — JWT + bcrypt                                                |
-| 3 Question bank      | selesai — model Mongoose, 15 soal                                               |
-| 4 Diagnostic session | selesai — sesi tersimpan, auto-expire                                           |
-| 5 Judge0             | **stub** — `fakeJudge0()` meniru bentuk respons Judge0                  |
-| 6 Classification     | selesai dan teruji                                                              |
+| Fase                 | Status                                                                                                            |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 0 Scaffold           | sebagian — docker-compose baru berisi MongoDB; Judge0 belum ditambahkan                                          |
+| 1 Design token       | selesai                                                                                                           |
+| 2 Auth               | selesai (MongoDB) — JWT + bcrypt                                                                                 |
+| 3 Question bank      | selesai — model Mongoose, 15 soal                                                                                |
+| 4 Diagnostic session | selesai — sesi tersimpan, auto-expire                                                                            |
+| 5 Judge0             | **stub** — `fakeJudge0()` meniru bentuk respons Judge0                                                   |
+| 6 Classification     | selesai dan teruji                                                                                                |
 | 7 Learning path      | selesai — penugasan otomatis dari level; modul terkunci berurutan (`requires`) dan asesmen ulang diatur server |
-| 8 Modules + progress | selesai — progres tersimpan, gating dan kuis bernilai (lulus ≥ 70%, ulang tanpa batas) berjalan di server |
-| 9 Puzzle             | tampil, data statis —**belum disetujui masuk scope** (lihat DECISIONS.md) |
-| 10 Testing           | unit test selesai; matriks black box belum ditulis                              |
+| 8 Modules + progress | selesai — progres tersimpan, gating dan kuis bernilai (lulus ≥ 70%, ulang tanpa batas) berjalan di server       |
+| 9 Puzzle             | tampil, data statis —**belum disetujui masuk scope** (lihat DECISIONS.md)                                  |
+| 10 Testing           | unit test selesai; matriks black box belum ditulis                                                                |

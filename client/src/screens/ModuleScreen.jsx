@@ -47,7 +47,7 @@ function ModuleView({ id }) {
   const next = open(data.siblings[pos + 1]);
 
   return (
-    <div className="page" style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 'var(--space-7)' }}>
+    <div className="page" style={{ display: 'grid', gridTemplateColumns: '240px minmax(0, 1fr)', gap: 'var(--space-7)' }}>
       <aside>
         <div className="label label--ink">MODULES</div>
         <div className="stack" style={{ marginTop: 12 }}>
@@ -94,6 +94,8 @@ function ModuleView({ id }) {
             {!m.body?.length && <p>Materi modul ini belum ditulis di prototype.</p>}
           </div>
 
+          {m.references?.length > 0 && <References items={m.references} />}
+
           {m.quiz?.length > 0 && (
             // Refetched after every graded attempt so quiz_status stays current. useApi keeps the old data
             // while refetching, so Quiz stays mounted and its result (pass review or fail message) survives.
@@ -106,6 +108,24 @@ function ModuleView({ id }) {
           </div>
         </article>
       )}
+    </div>
+  );
+}
+
+/** The official pages the module's claims were checked against. */
+function References({ items }) {
+  return (
+    <div style={{ borderTop: '1px solid var(--rule)', paddingTop: 16, margin: 'var(--space-5) 0' }}>
+      <div className="label">SUMBER</div>
+      <ol className="stack" style={{ marginTop: 8, paddingLeft: 18, fontSize: 'var(--text-sm)' }}>
+        {items.map((r) => (
+          <li key={r.url}>
+            <a href={r.url} target="_blank" rel="noreferrer">{r.title}</a>
+            <span className="muted"> — {r.publisher}</span>
+            <span className="muted mono" style={{ marginLeft: 8 }}>diakses {r.accessed_at}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
@@ -183,6 +203,13 @@ function Quiz({ module: m, onLocked, onGraded }) {
               );
             })}
           </div>
+          {/* Only the admin (dev/demo) receives the key before passing. */}
+          {q.correct_answer && (
+            <div className="callout" style={{ marginTop: 8, fontSize: 'var(--text-sm)' }}>
+              <span className="label">ADMIN · KUNCI</span> {optionLabel(q, q.correct_answer)}
+              <div style={{ marginTop: 4 }}>{q.explanation}</div>
+            </div>
+          )}
         </div>
       ))}
 

@@ -43,8 +43,8 @@ describe('seed', () => {
     assert.equal(await Question.countDocuments({ difficulty: 'easy' }), 5);
     assert.equal(await Question.countDocuments({ is_published: true }), 15);
     assert.equal(await LearningPath.countDocuments(), 3);
-    assert.equal(await Module.countDocuments(), 13);
-    assert.equal(await User.countDocuments(), 2);
+    assert.equal(await Module.countDocuments(), 17);
+    assert.equal(await User.countDocuments(), 3);
     assert.equal(await Progress.countDocuments(), 2);
     assert.equal(await QuizAttempt.countDocuments(), 1);
   });
@@ -111,26 +111,34 @@ describe('seed', () => {
     assert.deepEqual(counts, { async: 4, 'rest-api': 3, react: 2 });
   });
 
-  it('new and intermediate paths carry the two sample modules from the spec', async () => {
+  it('new path has 6 modules climbing Bloom from remember, intermediate keeps its two samples', async () => {
     const outline = async (level) => {
       const path = await LearningPath.findOne({ level }).lean();
       assert.equal(path.steps.length, 3, level);
       const mods = await Module.find({ path_id: path._id }).sort({ order: 1 }).lean();
-      return mods.map((m) => [m.order, m.topic, m.title]);
+      return mods.map((m) => [m.order, m.topic, m.bloom_level, m.title]);
     };
     assert.deepEqual(await outline('new'), [
-      [1, 'javascript', 'Perbandingan == vs === dan tipe data'],
-      [2, 'dom', 'Memilih elemen dan menangani event di DOM'],
+      [1, 'javascript', 'remember', 'Variabel, tipe data, dan operator dasar'],
+      [2, 'javascript', 'remember', 'Fungsi: parameter, return, dan arrow function'],
+      [3, 'javascript', 'understand', 'Perbandingan == vs === dan tipe data'],
+      [4, 'dom', 'apply', 'Memilih elemen dan menangani event di DOM'],
+      [5, 'array-methods', 'understand', 'Method array: map, filter, dan find'],
+      [6, 'array-methods', 'apply', 'reduce dan menampilkan hasil array ke DOM'],
     ]);
+    // Every step of the new path now has modules, so no step shows a count of 0.
+    const newPath = await LearningPath.findOne({ level: 'new' }).lean();
+    const newModules = await Module.find({ path_id: newPath._id }).lean();
+    for (const s of newPath.steps) assert.ok(newModules.some((m) => m.topic === s.topic), s.topic);
     assert.deepEqual(await outline('intermediate'), [
-      [1, 'async', 'Retry dengan exponential backoff'],
-      [2, 'express', 'Menyusun middleware Express'],
+      [1, 'async', 'apply', 'Retry dengan exponential backoff'],
+      [2, 'express', 'apply', 'Menyusun middleware Express'],
     ]);
   });
 
   it('every module has one lead first, 3–6 content blocks, a realistic duration and no stored unlock fields', async () => {
     const modules = await Module.find().lean();
-    assert.equal(modules.length, 13);
+    assert.equal(modules.length, 17);
     for (const m of modules) {
       const rest = m.body.slice(1);
       assert.equal(m.body[0].type, 'lead', m.title);
@@ -141,7 +149,7 @@ describe('seed', () => {
         if (b.type === 'code') assert.ok(b.label && b.code, m.title);
         else assert.ok(b.text, m.title);
       }
-      assert.ok(['understand', 'apply'].includes(m.bloom_level), m.title);
+      assert.ok(['remember', 'understand', 'apply'].includes(m.bloom_level), m.title);
       assert.ok(m.estimated_minutes >= 10 && m.estimated_minutes <= 30, m.title);
       // Gating is computed from requires, so the old stored labels must not come back.
       assert.equal('unlock_rule' in m, false, m.title);
@@ -149,9 +157,24 @@ describe('seed', () => {
     }
   });
 
+  it('every module cites 1–3 references with an https url, a publisher and an ISO access date', async () => {
+    const modules = await Module.find().lean();
+    assert.equal(modules.length, 17);
+    for (const m of modules) {
+      assert.ok(m.references.length >= 1 && m.references.length <= 3, m.title);
+      const urls = m.references.map((r) => r.url);
+      assert.equal(new Set(urls).size, urls.length, `${m.title}: duplicate source`);
+      for (const r of m.references) {
+        assert.ok(r.title.trim() && r.publisher.trim(), m.title);
+        assert.ok(new URL(r.url).protocol === 'https:', `${m.title}: ${r.url}`);
+        assert.match(r.accessed_at, /^\d{4}-\d{2}-\d{2}$/, m.title);
+      }
+    }
+  });
+
   it('every quiz has 3–5 items, 3–4 options, a key among the options and an explanation', async () => {
     const modules = await Module.find().select('+quiz.correct_answer +quiz.explanation').lean();
-    assert.equal(modules.length, 13);
+    assert.equal(modules.length, 17);
     for (const m of modules) {
       assert.ok(m.quiz.length >= 3 && m.quiz.length <= 5, m.title);
       m.quiz.forEach((item, i) => {
@@ -178,7 +201,11 @@ describe('seed', () => {
       'Status code dan middleware error': ['b', 'd', 'c', 'a', 'b'],
       'State dan render kondisional': ['b', 'a', 'c', 'd'],
       'Mengambil data dengan useEffect (loading, error, cleanup)': ['c', 'b', 'd', 'a'],
+      'Variabel, tipe data, dan operator dasar': ['c', 'b', 'c', 'a'],
+      'Fungsi: parameter, return, dan arrow function': ['c', 'a', 'b', 'd'],
       'Perbandingan == vs === dan tipe data': ['b', 'c', 'a', 'd'],
+      'Method array: map, filter, dan find': ['c', 'b', 'a', 'd'],
+      'reduce dan menampilkan hasil array ke DOM': ['b', 'c', 'b', 'd'],
       'Memilih elemen dan menangani event di DOM': ['b', 'd', 'c', 'a'],
       'Retry dengan exponential backoff': ['a', 'c', 'b', 'd'],
       'Menyusun middleware Express': ['b', 'a', 'd', 'c'],
@@ -237,10 +264,10 @@ describe('seed', () => {
   it('is idempotent', async () => {
     const result = await seed();
     assert.equal(await Question.countDocuments(), 15);
-    assert.equal(await User.countDocuments(), 2);
+    assert.equal(await User.countDocuments(), 3);
     assert.equal(await Submission.countDocuments(), 15);
     assert.equal(await AssessmentSession.countDocuments(), 5);
-    assert.equal(await Module.countDocuments(), 13);
+    assert.equal(await Module.countDocuments(), 17);
     assert.equal(await Progress.countDocuments(), 2);
     assert.equal(await QuizAttempt.countDocuments(), 1);
     assert.deepEqual([...result.questions.keys()].length, 15);

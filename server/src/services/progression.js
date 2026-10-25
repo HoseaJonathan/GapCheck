@@ -8,6 +8,7 @@ import Module from '../models/Module.js';
 import Progress from '../models/Progress.js';
 import QuizAttempt from '../models/QuizAttempt.js';
 import User from '../models/User.js';
+import { isAdmin, isAdminUser } from './admin.js';
 
 /**
  * Per-learner state of modules: progress rows, computed locks and quiz history.
@@ -43,8 +44,10 @@ const NO_ATTEMPTS = { attempts: 0, best_score: null, passed: false };
 export async function moduleStatuses(userId, modules) {
   // aggregate() does not cast like find() does, so the id is cast here.
   const uid = new mongoose.Types.ObjectId(String(userId));
-  const [progress, quizzes] = await Promise.all([progressMap(uid, modules), quizSummaries(uid, modules)]);
-  const locks = lockStates(modules, progress);
+  const [progress, quizzes, admin] = await Promise.all([
+    progressMap(uid, modules), quizSummaries(uid, modules), isAdmin(uid),
+  ]);
+  const locks = lockStates(modules, progress, { open: admin });
   return new Map(modules.map((m) => {
     const id = String(m._id);
     const row = progress.get(id);
@@ -65,13 +68,16 @@ export async function moduleStatuses(userId, modules) {
  * rule reads are loaded.
  */
 export async function retakeFor(userId) {
-  const user = await User.findById(userId).select('level').lean();
+  const user = await User.findById(userId).select('level role').lean();
   if (!user) throw new HttpError(401, 'unknown_user');
   const path = user.level ? await LearningPath.findOne({ level: user.level }).lean() : null;
   const [sessions, modules] = await Promise.all([
     AssessmentSession.find({ user_id: user._id, status: 'finished' }).select('finished_at').lean(),
     path ? Module.find({ path_id: path._id }).select('order topic requires').sort({ order: 1 }).lean() : [],
   ]);
+  if (isAdminUser(user)) {
+    return { allowed: true, kind: sessions.length ? 'checkpoint' : 'diagnostic', reason: null };
+  }
   const progress = await progressMap(user._id, modules);
   return retakeEligibility({ sessions, modules, progress, steps: path?.steps ?? [] });
 }

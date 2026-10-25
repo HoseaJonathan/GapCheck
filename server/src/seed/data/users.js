@@ -14,6 +14,16 @@ export const users = {
     profile: { display_name: 'Nadia Pramesti', initials: 'NP' },
     statistics: { streak_days: 0, bonus_points: 0 },
   },
+  // Dev/demo account (ADMIN_ENABLED): every module open, quiz keys shown, level switchable, retake never locked.
+  // Starts on the new path; it has no sessions, so Result and Progress stay empty for it.
+  admin: {
+    username: 'admin',
+    email: 'admin@gapcheck.test',
+    role: 'admin',
+    level: 'new',
+    profile: { display_name: 'Admin', initials: 'AD' },
+    statistics: { streak_days: 0, bonus_points: 0 },
+  },
 };
 
 /** Riwayat hosea yang hanya berupa persentase; earned/possible/level diturunkan di seed.js. */

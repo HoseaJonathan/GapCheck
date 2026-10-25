@@ -7,6 +7,7 @@ import QuizAttempt from '../models/QuizAttempt.js';
 import User from '../models/User.js';
 import { loadLatestAnalysis } from './analysis.js';
 import { moduleStatuses, progressMap } from './progression.js';
+import { isAdmin } from './admin.js';
 
 export { progressMap };
 
@@ -65,20 +66,25 @@ export async function listModules(userId) {
  * Modules are shared content, so any signed-in user may open any of them;
  * only the status fields are per caller. A locked module is sent as its
  * outline only: its content is not readable before the prerequisite is passed.
+ * The admin (dev/demo only) also gets each quiz item's key and explanation.
  */
 export async function getModule(userId, moduleId) {
-  const mod = await Module.findById(moduleId).lean();
+  const admin = await isAdmin(userId);
+  const query = Module.findById(moduleId);
+  if (admin) query.select('+quiz.correct_answer +quiz.explanation');
+  const mod = await query.lean();
   if (!mod) throw new HttpError(404, 'unknown_module');
 
   const [siblings, weakest] = await Promise.all([pathModules(mod.path_id), weakestTopic(userId)]);
   const statuses = await moduleStatuses(userId, siblings);
 
-  const { body, quiz, ...outline } = mod;
+  const { body, quiz, references, ...outline } = mod;
   const module = { ...withStatus(outline, statuses), flagged_by_diagnostic: mod.topic === weakest };
   if (!module.locked) {
     // Key and explanation are already excluded by the schema; stripped here too so a widened query cannot leak them.
     module.body = body ?? [];
-    module.quiz = (quiz ?? []).map(({ correct_answer, explanation, ...item }) => item);
+    module.references = references ?? [];
+    module.quiz = admin ? (quiz ?? []) : (quiz ?? []).map(({ correct_answer, explanation, ...item }) => item);
   }
   return { module, siblings: siblings.map((s) => withStatus(s, statuses)) };
 }

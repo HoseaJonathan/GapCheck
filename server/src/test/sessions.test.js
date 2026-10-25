@@ -351,7 +351,7 @@ describe('retake rule on POST /sessions', () => {
     assert.equal(again.body.reason, 'retake_locked');
     assert.equal(
       again.body.retake.reason,
-      'Selesaikan 1 modul lagi di langkah Dasar JavaScript untuk membuka asesmen ulang.',
+      'Selesaikan 3 modul lagi di langkah Dasar JavaScript untuk membuka asesmen ulang.',
     );
   });
 });

@@ -18,6 +18,17 @@ const quizItemSchema = new mongoose.Schema(
   { _id: false },
 );
 
+// Official source the module's claims were checked against; accessed_at is 'YYYY-MM-DD' as web citations need.
+const referenceSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    publisher: { type: String, required: true },
+    url: { type: String, required: true },
+    accessed_at: { type: String, required: true },
+  },
+  { _id: false },
+);
+
 // progress_percent and flagged_by_diagnostic live elsewhere (progress collection / computed).
 const moduleSchema = new mongoose.Schema(
   {
@@ -29,6 +40,7 @@ const moduleSchema = new mongoose.Schema(
     body: [blockSchema],
     quiz: [quizItemSchema],
     estimated_minutes: Number,
+    references: [referenceSchema],
     // Prerequisite module; null means the module is open from the start. Gating is computed from this, not stored.
     requires: { type: mongoose.Schema.Types.ObjectId, ref: 'Module', default: null },
   },

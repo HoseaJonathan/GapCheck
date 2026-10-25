@@ -20,13 +20,14 @@ const byOrder = (x, y) => x.order - y.order;
  * A module is open when it has no prerequisite, when the prerequisite is
  * completed, or when the prerequisite is not among `modules` at all (a missing
  * prerequisite counts as met so a data gap can never lock a learner out).
+ * `open` opens every module regardless of progress (the admin bypass).
  */
-export function lockStates(modules, progress) {
+export function lockStates(modules, progress, { open = false } = {}) {
   const byId = new Map(modules.map((m) => [String(m._id), m]));
   const locks = new Map();
   for (const m of modules) {
     const prereq = m.requires == null ? null : byId.get(String(m.requires));
-    const locked = prereq != null && !isCompleted(progress, prereq);
+    const locked = !open && prereq != null && !isCompleted(progress, prereq);
     locks.set(String(m._id), {
       locked,
       unlock_rule: locked ? 'locked' : 'open',

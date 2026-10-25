@@ -11,6 +11,7 @@ import { lockStates, nextModule } from '../learning.js';
 import { calloutModule, loadLatestAnalysis } from './analysis.js';
 import { OUTLINE, loadPath, progressMap, stepsWithCounts, withProgress } from './modules.js';
 import { retakeFor } from './progression.js';
+import { isAdminUser } from './admin.js';
 
 const INTERMEDIATE_THRESHOLD = THRESHOLDS.beginner + 1;
 const BAND = { new: THRESHOLDS.new, beginner: THRESHOLDS.new + 1, intermediate: INTERMEDIATE_THRESHOLD };
@@ -161,8 +162,8 @@ function headline(latest) {
  * locked. The reason names the topic only when the module is on it, so the
  * learner is never told a module covers a gap it does not cover.
  */
-function nextUp(weakest, modules, progress) {
-  const module = nextModule(modules, lockStates(modules, progress), progress);
+function nextUp(weakest, modules, progress, open) {
+  const module = nextModule(modules, lockStates(modules, progress, { open }), progress);
   if (!module) return null;
   return {
     module: withProgress(module, progress),
@@ -190,7 +191,7 @@ export async function getOverview(userId) {
     weighted_score: latest?.percentage ?? null,
     band: BAND,
     level: user.level,
-    next_up: nextUp(analysis?.topics.at(-1)?.topic, modules, progress),
+    next_up: nextUp(analysis?.topics.at(-1)?.topic, modules, progress, isAdminUser(user)),
     // A progress row whose module was deleted has nothing to show.
     in_progress: open
       .filter((p) => p.module_id)

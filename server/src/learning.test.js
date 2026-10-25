@@ -11,6 +11,11 @@ const steps = [
   { title: 'React', topic: 'react' },
 ];
 
+test('lockStates: open opens every module with no progress at all', () => {
+  const l = lockStates(mods, new Map(), { open: true });
+  assert.ok(mods.every((m) => l.get(m._id).locked === false && l.get(m._id).unlock_hint === null));
+});
+
 test('lockStates: first open, chain locked until prerequisite completed', () => {
   const l = lockStates(mods, new Map());
   assert.deepEqual([l.get('a').locked, l.get('b').locked, l.get('c').locked], [false, true, true]);

@@ -9,6 +9,8 @@ const userSchema = new mongoose.Schema(
     // null = has not finished a diagnostic yet; Mongoose needs null listed explicitly in an enum.
     level: { type: String, enum: [null, 'new', 'beginner', 'intermediate'], default: null },
     diagnostic_status: { type: Boolean, default: false },
+    // 'admin' is the dev/demo account only (see ADMIN_ENABLED); register never sets it.
+    role: { type: String, enum: ['learner', 'admin'], default: 'learner' },
     profile: {
       display_name: String,
       initials: String,
