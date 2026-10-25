@@ -75,7 +75,9 @@ export async function getModule(userId, moduleId) {
   const mod = await query.lean();
   if (!mod) throw new HttpError(404, 'unknown_module');
 
-  const [siblings, weakest] = await Promise.all([pathModules(mod.path_id), weakestTopic(userId)]);
+  const [siblings, weakest, path] = await Promise.all([
+    pathModules(mod.path_id), weakestTopic(userId), LearningPath.findById(mod.path_id).select('level title').lean(),
+  ]);
   const statuses = await moduleStatuses(userId, siblings);
 
   const { body, quiz, references, ...outline } = mod;
@@ -86,7 +88,11 @@ export async function getModule(userId, moduleId) {
     module.references = references ?? [];
     module.quiz = admin ? (quiz ?? []) : (quiz ?? []).map(({ correct_answer, explanation, ...item }) => item);
   }
-  return { module, siblings: siblings.map((s) => withStatus(s, statuses)) };
+  return {
+    module,
+    siblings: siblings.map((s) => withStatus(s, statuses)),
+    path: path && { level: path.level, title: path.title },
+  };
 }
 
 /** Upsert that tolerates losing a race: the unique (user, module) index rejects the second insert. */

@@ -14,6 +14,7 @@ import progressRoutes from './routes/progress.js';
 import moduleRoutes from './routes/modules.js';
 import puzzleRoutes from './routes/puzzle.js';
 import adminRoutes from './routes/admin.js';
+import pathRoutes from './routes/paths.js';
 
 // Factory without listen() so tests can build an app per suite.
 export function createApp() {
@@ -35,6 +36,7 @@ export function createApp() {
   app.use(moduleRoutes);
   app.use(puzzleRoutes);
   app.use(adminRoutes);
+  app.use(pathRoutes);
 
   // reason keeps the { error, reason } shape every other error has; path helps spot a typo in the URL.
   app.use((req, res) => res.status(404).json({ error: 'Not Found', reason: 'not_found', path: req.path }));

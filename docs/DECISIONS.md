@@ -389,3 +389,27 @@ lewat `PATCH /admin/level`. Akun ini hanya untuk pengujian dan demo, dinonaktifk
 ketika `NODE_ENV=production` (`ADMIN_ENABLED`), dan **tidak** dimasukkan ke BAB 3.
 Bila penguji menanyakannya, posisinya sama dengan data seed: perangkat bantu
 pengembangan, bukan aktor sistem.
+
+## F. Halaman Modules: landing per level dan ikhtisar jalur
+
+Belum ada di mockup Figma maupun BAB 3; keduanya perlu ditambahkan.
+
+- **Landing `/modules`.** Tiga kartu berurutan: 01 New, 02 Beginner,
+  03 Intermediate. Setiap kartu memuat judul jalur, deskripsi singkat, jumlah
+  modul, perkiraan waktu, dan tombol *Baca selengkapnya*. Hanya jalur sesuai
+  `users.level` yang terbuka; jalur lain, termasuk level di bawahnya,
+  ditampilkan abu-abu dan terkunci. Pengguna tanpa level (belum diagnostik)
+  melihat semua kartu terkunci dan diarahkan ke asesmen diagnostik.
+- **Ikhtisar jalur `/paths/:level`.** Ditampilkan sebelum masuk ke modul 01:
+  uraian jalur, capaian belajar, rentang tingkat Bloom, langkah beserta modul
+  dan statusnya, tombol mulai/lanjutkan, serta gabungan sumber materi seluruh
+  modul jalur itu. Jalur yang terkunci menghasilkan 403 (`path_locked`).
+- **Endpoint baru** (tambahkan ke diagram sequence): `GET /paths` dan
+  `GET /paths/:level`, keduanya memverifikasi JWT lebih dulu.
+
+### C8. Tambahan pada tabel `learning_paths`
+
+| Nama Field | Tipe Data | Keterangan |
+|---|---|---|
+| `overview` | String | Uraian jalur yang ditampilkan pada halaman ikhtisar sebelum modul pertama. |
+| `outcomes` | Array of String | Capaian belajar: kemampuan yang dimiliki pengguna setelah menyelesaikan jalur. |

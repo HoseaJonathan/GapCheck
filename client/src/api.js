@@ -51,6 +51,8 @@ export const api = {
   result: () => request('/result'),
   questions: (difficulty) => request(`/questions${difficulty ? `?difficulty=${difficulty}` : ''}`),
   modules: () => request('/modules'),
+  paths: () => request('/paths'),
+  path: (level) => request(`/paths/${level}`),
   module: (id) => request(`/modules/${id}`),
   puzzle: () => request('/puzzle'),
   startSession: () => request('/sessions', { method: 'POST' }),

@@ -5,7 +5,10 @@ const learningPathSchema = new mongoose.Schema(
   {
     level: { type: String, enum: ['new', 'beginner', 'intermediate'], required: true },
     title: { type: String, required: true },
+    // description is the one-line card text; overview and outcomes fill the path overview page.
     description: String,
+    overview: String,
+    outcomes: [String],
     steps: [{ title: String, topic: String, reason: String, _id: false }],
   },
   { collection: 'learning_paths' },

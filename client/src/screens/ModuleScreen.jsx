@@ -1,22 +1,14 @@
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
-import { api, pathMessage, useApi } from '../api.js';
+import { api, useApi } from '../api.js';
 import { Loading } from '../components/Bits.jsx';
+import References from '../components/References.jsx';
 
+/** /modules/:id. /modules itself is the landing page (ModuleLanding). */
 export default function ModuleScreen() {
   const { id } = useParams();
   // key resets the quiz state when navigating between modules.
-  return id ? <ModuleView key={id} id={id} /> : <ModuleRedirect />;
-}
-
-/** /modules without an id: the server decides which module comes first, so no id is hardcoded here. */
-function ModuleRedirect() {
-  const { data, loading } = useApi(() => api.overview(), []);
-  if (loading || !data) return <Loading />;
-  if (data.next_up) return <Navigate replace to={`/modules/${data.next_up.module._id}`} />;
-  // Only a learner without a level still needs the diagnostic; one with a level would just come back here.
-  if (data.level === null) return <Navigate replace to="/assessment" />;
-  return <div className="page"><p>{pathMessage(data)}</p></div>;
+  return <ModuleView key={id} id={id} />;
 }
 
 const isModuleLocked = (e) => e?.status === 403 && e.body?.reason === 'module_locked';
@@ -49,6 +41,11 @@ function ModuleView({ id }) {
   return (
     <div className="page" style={{ display: 'grid', gridTemplateColumns: '240px minmax(0, 1fr)', gap: 'var(--space-7)' }}>
       <aside>
+        {data.path && (
+          <Link to={`/paths/${data.path.level}`} className="muted" style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 16 }}>
+            ← Ikhtisar {data.path.title}
+          </Link>
+        )}
         <div className="label label--ink">MODULES</div>
         <div className="stack" style={{ marginTop: 12 }}>
           {data.siblings.map((s) => {
@@ -108,24 +105,6 @@ function ModuleView({ id }) {
           </div>
         </article>
       )}
-    </div>
-  );
-}
-
-/** The official pages the module's claims were checked against. */
-function References({ items }) {
-  return (
-    <div style={{ borderTop: '1px solid var(--rule)', paddingTop: 16, margin: 'var(--space-5) 0' }}>
-      <div className="label">SUMBER</div>
-      <ol className="stack" style={{ marginTop: 8, paddingLeft: 18, fontSize: 'var(--text-sm)' }}>
-        {items.map((r) => (
-          <li key={r.url}>
-            <a href={r.url} target="_blank" rel="noreferrer">{r.title}</a>
-            <span className="muted"> — {r.publisher}</span>
-            <span className="muted mono" style={{ marginLeft: 8 }}>diakses {r.accessed_at}</span>
-          </li>
-        ))}
-      </ol>
     </div>
   );
 }
