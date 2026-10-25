@@ -29,8 +29,8 @@ const isPathLocked = (user, level) => !isAdminUser(user) && user.level !== level
 export async function listPaths(userId) {
   const user = await requireUser(userId);
   const [paths, modules] = await Promise.all([
-    LearningPath.find().select('level title description').lean(),
-    Module.find().select('path_id estimated_minutes').lean(),
+    LearningPath.find().select('level title description steps').lean(),
+    Module.find().select('path_id topic estimated_minutes').lean(),
   ]);
   return LEVELS.flatMap((level, i) => {
     const path = paths.find((p) => p.level === level);
@@ -41,6 +41,8 @@ export async function listPaths(userId) {
       level,
       title: path.title,
       description: path.description ?? '',
+      // What the learner will study: the step titles with their module counts, in path order.
+      steps: path.steps.map((s) => ({ title: s.title, module_count: mods.filter((m) => m.topic === s.topic).length })),
       module_count: mods.length,
       estimated_minutes: minutes(mods),
       current: user.level === level,

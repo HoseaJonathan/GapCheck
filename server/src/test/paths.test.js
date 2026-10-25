@@ -26,6 +26,12 @@ describe('learning paths (Modules landing and path overview)', () => {
     const paths = await list(hosea);
     assert.deepEqual(paths.map((p) => [p.order, p.level, p.module_count]), [[1, 'new', 6], [2, 'beginner', 9], [3, 'intermediate', 2]]);
     assert.ok(paths.every((p) => p.title && p.description && p.estimated_minutes > 0));
+    // Each card lists what the learner will study: the path's steps with their module counts.
+    assert.deepEqual(paths[0].steps, [
+      { title: 'Dasar JavaScript', module_count: 3 },
+      { title: 'Manipulasi DOM', module_count: 1 },
+      { title: 'Method array', module_count: 2 },
+    ]);
   });
 
   it('only the learner\'s own level is open, lower levels included', async () => {

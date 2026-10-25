@@ -4,6 +4,8 @@ import { Loading } from '../components/Bits.jsx';
 
 export const LEVEL_LABEL = { new: 'New', beginner: 'Beginner', intermediate: 'Intermediate' };
 const pad2 = (n) => String(n).padStart(2, '0');
+/** Whole hours, rounded; a path with any content shows at least 1 hour. */
+const hours = (minutes) => (minutes > 0 ? Math.max(1, Math.round(minutes / 60)) : 0);
 
 /** One sentence under the heading that explains the lock state of the cards below it. */
 function intro(paths) {
@@ -48,8 +50,21 @@ function PathCard({ path: p }) {
         {p.locked && <span className="label">TERKUNCI</span>}
         <h2>{p.title}</h2>
         <p>{p.description}</p>
-        <div className="label">{p.module_count} MODUL · ±{p.estimated_minutes} MENIT</div>
+        {p.steps?.length > 0 && (
+          <div>
+            <div className="label" style={{ marginTop: 'var(--space-2)' }}>YANG AKAN KAMU PELAJARI</div>
+            <ol className="path-card__steps">
+              {p.steps.map((s) => (
+                <li key={s.title}>
+                  <span>{s.title}</span>
+                  <span className="mono faint">{s.module_count} modul</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
         <div className="path-card__foot">
+          <div className="label">{p.module_count} MODUL · ±{hours(p.estimated_minutes)} JAM</div>
           {p.locked ? (
             <button type="button" className="btn" disabled>Baca selengkapnya</button>
           ) : (

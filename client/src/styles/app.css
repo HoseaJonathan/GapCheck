@@ -164,8 +164,17 @@ table.data td.num { font-family: var(--font-mono); font-variant-numeric: tabular
 .paths { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); margin-top: var(--space-6); }
 .path-card {
   border: 1px solid var(--rule-strong); background: var(--surface);
-  display: flex; flex-direction: column; min-height: 360px;
+  display: flex; flex-direction: column; min-height: 520px;
 }
+.path-card__steps { list-style: none; margin: var(--space-2) 0 0; padding: 0; counter-reset: step; }
+.path-card__steps li {
+  counter-increment: step; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: var(--space-2);
+  padding: var(--space-2) 0; border-bottom: 1px solid var(--rule); font-size: var(--text-sm); color: var(--ink);
+}
+.path-card__steps li:last-child { border-bottom: 0; }
+.path-card__steps li::before { content: counter(step, decimal-leading-zero); font-family: var(--font-mono); color: var(--green); font-size: var(--text-xs); padding-top: 2px; }
+.path-card.is-locked .path-card__steps li { color: var(--locked); border-bottom-color: var(--rule-strong); }
+.path-card.is-locked .path-card__steps li::before { color: var(--locked); }
 .path-card__head { padding: var(--space-5); border-bottom: 1px solid var(--rule-strong); }
 .path-card__num { font-family: var(--font-mono); font-size: var(--text-xl); color: var(--ink); line-height: 1; }
 .path-card__level { font-size: var(--text-xl); font-weight: 600; letter-spacing: -0.015em; margin-top: var(--space-2); }
@@ -177,7 +186,8 @@ table.data td.num { font-family: var(--font-mono); font-variant-numeric: tabular
 .path-card--intermediate .path-card__level { color: #fff; }
 .path-card__body { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); flex: 1; }
 .path-card__body p { margin: 0; }
-.path-card__foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+/* Pinned to the bottom of the card: the module/hour count sits directly above the button. */
+.path-card__foot { margin-top: auto; padding-top: var(--space-4); display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); }
 /* Locked paths are greyed out: present, but not the learner's level. */
 .path-card.is-locked { background: var(--locked-soft); border-color: var(--rule); }
 .path-card.is-locked .path-card__head { background: var(--locked-soft); border-bottom-color: var(--rule); }
