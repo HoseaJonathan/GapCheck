@@ -28,6 +28,9 @@
   --green: #1f5d45;
   --green-hover: #184a37;
   --green-soft: #e7efea;
+  /* Tints of the one accent, deepening with level and Bloom depth (still a single hue). */
+  --green-mid: #cfe0d6;
+  --green-ink: #1b4b39;
 
   /* Amber/rust for weakness and warning. Never red. */
   --amber: #a2521c;

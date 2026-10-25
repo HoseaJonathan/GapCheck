@@ -169,26 +169,69 @@ table.data td.num { font-family: var(--font-mono); font-variant-numeric: tabular
 .path-card__head { padding: var(--space-5); border-bottom: 1px solid var(--rule-strong); }
 .path-card__num { font-family: var(--font-mono); font-size: var(--text-xl); color: var(--ink); line-height: 1; }
 .path-card__level { font-size: var(--text-xl); font-weight: 600; letter-spacing: -0.015em; margin-top: var(--space-2); }
+/* The header tint deepens with the level: New light, Beginner mid, Intermediate full green. */
+.path-card--new .path-card__head { background: var(--green-soft); }
+.path-card--beginner .path-card__head { background: var(--green-mid); }
+.path-card--intermediate .path-card__head { background: var(--green); border-bottom-color: var(--green); }
+.path-card--intermediate .path-card__num,
+.path-card--intermediate .path-card__level { color: #fff; }
 .path-card__body { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); flex: 1; }
 .path-card__body p { margin: 0; }
 .path-card__foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 /* Locked paths are greyed out: present, but not the learner's level. */
 .path-card.is-locked { background: var(--locked-soft); border-color: var(--rule); }
-.path-card.is-locked .path-card__head { border-bottom-color: var(--rule); }
+.path-card.is-locked .path-card__head { background: var(--locked-soft); border-bottom-color: var(--rule); }
 .path-card.is-locked .path-card__num,
 .path-card.is-locked .path-card__level,
 .path-card.is-locked h2,
 .path-card.is-locked p { color: var(--locked); }
 .path-card.is-current { border-color: var(--green); }
 
-/* ---- path overview: steps with their modules ---- */
-.step { border-top: 1px solid var(--rule); padding: var(--space-5) 0; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: var(--space-6); }
-.step__modules { display: flex; flex-direction: column; }
-.step-module {
-  display: grid; grid-template-columns: 32px minmax(0, 1fr) auto auto auto; gap: var(--space-4);
-  align-items: baseline; padding: var(--space-3) 0; border-bottom: 1px solid var(--rule); font-size: var(--text-sm);
-}
+/* ---- path overview ---- */
+.path-hero { background: var(--green-soft); border: 1px solid var(--green-mid); padding: var(--space-6); margin-top: var(--space-4); }
+.path-hero p { color: var(--green-ink); }
+.path-hero .tiles { border-color: var(--green-mid); background: var(--surface); margin-top: var(--space-5); }
+.path-hero .tile { border-right-color: var(--green-mid); }
+.path-hero .tile:first-child { padding-left: var(--space-5); }
+
+/* Steps as cards, side by side. */
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); align-items: stretch; }
+.step-card { border: 1px solid var(--rule-strong); background: var(--surface); display: flex; flex-direction: column; }
+.step-card__head { background: var(--green-soft); border-bottom: 1px solid var(--green-mid); padding: var(--space-4) var(--space-5); }
+.step-card__head p { margin: 8px 0 0; font-size: var(--text-sm); color: var(--green-ink); }
+.step-card__num { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.12em; color: var(--green); }
+.step-card__modules { padding: var(--space-2) var(--space-5); flex: 1; display: flex; flex-direction: column; }
+.step-card__foot { padding: var(--space-3) var(--space-5) var(--space-4); border-top: 1px solid var(--rule); }
+.step-card.is-done { border-color: var(--green); }
+.step-card.is-done .step-card__head { background: var(--green); border-bottom-color: var(--green); }
+.step-card.is-done .step-card__head h2,
+.step-card.is-done .step-card__head p,
+.step-card.is-done .step-card__num { color: #fff; }
+
+.step-module { display: block; padding: var(--space-3) 0; border-bottom: 1px solid var(--rule); color: var(--ink); text-decoration: none; }
 .step-module:last-child { border-bottom: 0; }
+a.step-module:hover { text-decoration: none; }
+a.step-module:hover .step-module__title { color: var(--green); }
+.step-module__title { font-size: var(--text-sm); display: grid; grid-template-columns: 28px minmax(0, 1fr); }
+.step-module__meta { display: flex; align-items: center; gap: var(--space-2); margin: 6px 0 0 28px; flex-wrap: wrap; }
+.step-module.is-locked .step-module__title { color: var(--locked); }
+
+/* Small mono chips: Bloom level tints deepen remember → analyze; status by state. */
+.tag {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 2px 6px; border-radius: 3px; border: 1px solid transparent; line-height: 1.4;
+}
+.tag--remember { background: var(--green-soft); color: var(--green); }
+.tag--understand { background: var(--green-mid); color: var(--green-ink); }
+.tag--apply { background: var(--green); color: #fff; }
+.tag--analyze, .tag--evaluate, .tag--create { background: var(--code-bg); color: var(--code-key); }
+.tag--done { background: var(--green); color: #fff; }
+.tag--progress { border-color: var(--green); color: var(--green); }
+.tag--open { border-color: var(--rule-strong); color: var(--ink-muted); }
+.tag--locked { background: var(--locked-soft); color: var(--locked); }
+.step-module.is-locked .tag--remember,
+.step-module.is-locked .tag--understand,
+.step-module.is-locked .tag--apply { background: var(--locked-soft); color: var(--locked); }
 
 /* ---- login ---- */
 .login-step {
@@ -213,7 +256,8 @@ table.data td.num { font-family: var(--font-mono); font-variant-numeric: tabular
   .split, .cols-2 { grid-template-columns: 1fr; }
   .paths { grid-template-columns: 1fr; }
   .path-card { min-height: 0; }
-  .step { grid-template-columns: 1fr; gap: var(--space-3); }
+  .steps { grid-template-columns: 1fr; }
+  .path-hero { padding: var(--space-4); }
   .login-panel { border-left: 0; padding-left: 0; border-top: 1px solid var(--rule); padding-top: var(--space-6); }
   .login-bands { flex-direction: column; }
   .assess__body { grid-template-columns: 1fr; }

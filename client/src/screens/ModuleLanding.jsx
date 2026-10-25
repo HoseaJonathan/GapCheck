@@ -36,7 +36,7 @@ export default function ModuleLanding() {
 }
 
 function PathCard({ path: p }) {
-  const cls = `path-card${p.locked ? ' is-locked' : ''}${p.current ? ' is-current' : ''}`;
+  const cls = `path-card path-card--${p.level}${p.locked ? ' is-locked' : ''}${p.current ? ' is-current' : ''}`;
   return (
     <section className={cls} aria-label={`Jalur ${pad2(p.order)} ${LEVEL_LABEL[p.level]}${p.locked ? ', terkunci' : ''}`}>
       <div className="path-card__head">
