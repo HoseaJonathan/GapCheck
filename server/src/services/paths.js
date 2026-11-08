@@ -1,4 +1,5 @@
 import { HttpError } from '../errors.js';
+import { LEVELS, pathAccess } from '../learning.js';
 import LearningPath from '../models/LearningPath.js';
 import Module from '../models/Module.js';
 import User from '../models/User.js';
@@ -7,7 +8,7 @@ import { OUTLINE } from './modules.js';
 import { moduleStatuses } from './progression.js';
 
 /** Card order on the Modules landing page: 01 New, 02 Beginner, 03 Intermediate. */
-export const LEVELS = ['new', 'beginner', 'intermediate'];
+export { LEVELS };
 const BLOOM = ['remember', 'understand', 'apply', 'analyze', 'evaluate', 'create'];
 
 const minutes = (mods) => mods.reduce((sum, m) => sum + (m.estimated_minutes ?? 0), 0);
@@ -19,11 +20,15 @@ async function requireUser(userId) {
 }
 
 /**
- * Only the path of the caller's own level is open; the others stay locked,
- * including lower levels. A user without a level yet has every path locked.
- * The admin (dev/demo only) has every path open.
+ * Access to a path (spec A5b): the learner's own level is `current`, levels
+ * below it are `review` (open, so a past level can be revisited), levels above
+ * are `locked`. A learner with no level yet has every path locked.
+ * The admin (dev/demo only) reaches every path; only their own reads `current`.
  */
-const isPathLocked = (user, level) => !isAdminUser(user) && user.level !== level;
+function accessFor(user, level) {
+  if (isAdminUser(user)) return user.level === level ? 'current' : 'review';
+  return pathAccess(user.level, level);
+}
 
 /** The three landing cards with the caller's lock state. */
 export async function listPaths(userId) {
@@ -36,6 +41,7 @@ export async function listPaths(userId) {
     const path = paths.find((p) => p.level === level);
     if (!path) return [];
     const mods = modules.filter((m) => String(m.path_id) === String(path._id));
+    const access = accessFor(user, level);
     return [{
       order: i + 1,
       level,
@@ -45,8 +51,9 @@ export async function listPaths(userId) {
       steps: path.steps.map((s) => ({ title: s.title, module_count: mods.filter((m) => m.topic === s.topic).length })),
       module_count: mods.length,
       estimated_minutes: minutes(mods),
-      current: user.level === level,
-      locked: isPathLocked(user, level),
+      access,
+      current: access === 'current',
+      locked: access === 'locked',
     }];
   });
 }
@@ -61,7 +68,7 @@ export async function getPathOverview(userId, level) {
   const user = await requireUser(userId);
   const path = await LearningPath.findOne({ level }).lean();
   if (!path) throw new HttpError(404, 'unknown_path');
-  if (isPathLocked(user, level)) throw new HttpError(403, 'path_locked');
+  if (accessFor(user, level) === 'locked') throw new HttpError(403, 'path_locked');
 
   const modules = await Module.find({ path_id: path._id }).select(`${OUTLINE} references`).sort({ order: 1 }).lean();
   const statuses = await moduleStatuses(userId, modules);

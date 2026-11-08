@@ -35,7 +35,9 @@ export default function Progress() {
         <Tile label="LEVEL" caption={data.points_to_next_level ? `${data.points_to_next_level} poin lagi ke Intermediate.` : 'Sudah di atas ambang Intermediate.'}>
           <span className="metric" style={{ fontSize: 'var(--text-xl)' }}>{data.level.toUpperCase()}</span>
         </Tile>
-        <Tile label="MODULES COMPLETED" caption={`Dari ${data.modules_total} modul di jalur kamu.`}>
+        <Tile label="MODULES COMPLETED" caption={`Dari ${data.modules_total} modul di jalur kamu.${
+          data.modules_completed_other ? ` ${data.modules_completed_other} lagi selesai di jalur lain, tidak dihitung di sini.` : ''
+        }`}>
           <Metric value={data.modules_completed} />
         </Tile>
         <Tile label="ACCEPTANCE RATE" caption="Submission yang lolos seluruh test case.">
@@ -52,7 +54,7 @@ export default function Progress() {
 
       <section className="section split">
         <div>
-          <div className="label label--ink">ACCURACY BY TOPIC</div>
+          <div className="label label--section">ACCURACY BY TOPIC</div>
           <div className="stack" style={{ marginTop: 16 }}>
             {worstLast.map((t) => (
               <div key={t.topic}>
@@ -75,7 +77,7 @@ export default function Progress() {
         </div>
 
         <div>
-          <div className="label label--ink">COGNITIVE LEVEL REACHED</div>
+          <div className="label label--section">COGNITIVE LEVEL REACHED</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, marginTop: 16, alignItems: 'end', height: 140 }}>
             {data.bloom_levels.map((b) => (
               <div key={b.level} style={{ textAlign: 'center' }}>

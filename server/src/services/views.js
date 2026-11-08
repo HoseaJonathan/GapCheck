@@ -95,7 +95,7 @@ export async function getProgress(userId) {
       weighted_score: null, level: user.level, points_to_next_level: null,
       intermediate_threshold: INTERMEDIATE_THRESHOLD,
       delta_since_first: null, delta_since_previous: null,
-      modules_completed: null, modules_total: null, acceptance_rate: null,
+      modules_completed: null, modules_total: null, modules_completed_other: null, acceptance_rate: null,
       sessions: [], topic_accuracy: [], bloom_levels: [], recent_submissions: [],
       retake,
     };
@@ -110,6 +110,8 @@ export async function getProgress(userId) {
       .populate('question_id', 'title difficulty').lean(),
   ]);
   const progress = await progressMap(userId, modules);
+  const modulesCompleted = [...progress.values()].filter((p) => p.state === 'completed').length;
+  const completedEverywhere = await Progress.countDocuments({ user_id: userId, state: 'completed' });
   const latest = sessions.at(-1).result;
 
   return {
@@ -118,8 +120,12 @@ export async function getProgress(userId) {
     points_to_next_level: pointsToNext(latest),
     intermediate_threshold: INTERMEDIATE_THRESHOLD,
     ...scoreDeltas(sessions),
-    modules_completed: [...progress.values()].filter((p) => p.state === 'completed').length,
+    modules_completed: modulesCompleted,
     modules_total: modules.length,
+    // Spec A4 keeps progress on a path the learner has left but does not count
+    // it: review-path completions are reported apart so the headline stays the
+    // learner's own path, and the work still shows somewhere.
+    modules_completed_other: Math.max(0, completedEverywhere - modulesCompleted),
     acceptance_rate: acceptanceRate(verdicts),
     sessions: sessionLabels(sessions).map((s) => ({
       _id: s._id, kind: s.kind, label: s.label, percentage: s.result.percentage, taken_at: s.started_at,

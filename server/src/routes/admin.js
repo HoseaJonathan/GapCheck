@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { HttpError } from '../errors.js';
+import { LEVELS } from '../learning.js';
 import { requireAuth } from '../middleware/auth.js';
 import User from '../models/User.js';
 import { isAdminUser } from '../services/admin.js';
 
 const router = Router();
-const LEVELS = ['new', 'beginner', 'intermediate'];
 
 /** Dev/demo only: the admin switches their own level to browse another learning path. */
 router.patch('/admin/level', requireAuth, async (req, res) => {

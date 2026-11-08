@@ -197,6 +197,33 @@ table.data td.num { font-family: var(--font-mono); font-variant-numeric: tabular
 .path-card.is-locked p { color: var(--locked); }
 .path-card.is-current { border-color: var(--green); }
 
+/*
+ * Review: a level the learner has already passed (spec A5b). It is open, so it
+ * must not read as grey/locked; the card keeps its surface and level tint and
+ * states itself in the body note instead.
+ */
+.path-card.is-review { background: var(--surface); border-color: var(--rule-strong); }
+
+/* "You are here" marker, pinned to the card header so it reads before the prose. */
+.path-card__head { position: relative; }
+.path-card__here {
+  position: absolute; top: var(--space-5); right: var(--space-5);
+  font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.08em;
+  text-transform: uppercase; white-space: nowrap;
+  border: 1px solid var(--green); color: var(--green); background: var(--surface);
+  padding: 2px 8px; border-radius: 999px;
+}
+/* The intermediate header is solid green, so the marker inverts there. */
+.path-card--intermediate .path-card__here { border-color: #fff; color: #fff; background: transparent; }
+
+/* ---- references card ---- */
+.ref-card { border: 1px solid var(--rule-strong); background: var(--surface); margin: var(--space-6) 0; }
+.ref-card__head { padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--rule); }
+.ref-card__body { padding: var(--space-4) var(--space-5) var(--space-5); }
+.ref-list { margin: 0; padding-left: 22px; font-size: var(--text-sm); display: flex; flex-direction: column; gap: var(--space-2); }
+.ref-list li::marker { font-family: var(--font-mono); color: var(--ink-faint); }
+.ref-card__more { margin-top: var(--space-4); }
+
 /* ---- path overview ---- */
 .path-hero { background: var(--green-soft); border: 1px solid var(--green-mid); padding: var(--space-6); margin-top: var(--space-4); }
 .path-hero p { color: var(--green-ink); }
@@ -206,7 +233,13 @@ table.data td.num { font-family: var(--font-mono); font-variant-numeric: tabular
 
 /* Steps as cards, side by side. */
 .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); align-items: stretch; }
-.step-card { border: 1px solid var(--rule-strong); background: var(--surface); display: flex; flex-direction: column; }
+.step-card {
+  border: 1px solid var(--rule-strong); background: var(--surface);
+  display: flex; flex-direction: column;
+  /* Anchor for the hover shadow layer below; the card itself stays flat. */
+  position: relative;
+  transition: transform 140ms ease, border-color 140ms ease;
+}
 .step-card__head { background: var(--green-soft); border-bottom: 1px solid var(--green-mid); padding: var(--space-4) var(--space-5); }
 .step-card__head p { margin: 8px 0 0; font-size: var(--text-sm); color: var(--green-ink); }
 .step-card__num { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.12em; color: var(--green); }
@@ -222,9 +255,38 @@ table.data td.num { font-family: var(--font-mono); font-variant-numeric: tabular
 .step-module:last-child { border-bottom: 0; }
 a.step-module:hover { text-decoration: none; }
 a.step-module:hover .step-module__title { color: var(--green); }
+
 .step-module__title { font-size: var(--text-sm); display: grid; grid-template-columns: 28px minmax(0, 1fr); }
 .step-module__meta { display: flex; align-items: center; gap: var(--space-2); margin: 6px 0 0 28px; flex-wrap: wrap; }
 .step-module.is-locked .step-module__title { color: var(--locked); }
+/*
+ * Hover lift. Only the step card moves: the module rows sit inside it, so
+ * lifting both would stack two transforms under one cursor and read as jitter.
+ * Rows get a tint instead.
+ *
+ * The shadow rides on an absolutely positioned ::after whose opacity is
+ * animated, because transitioning box-shadow itself repaints every frame.
+ * Absolute positioning also keeps the pseudo-element out of the card's flex
+ * flow, where it would otherwise become a flex item.
+ */
+.step-card::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  box-shadow: 0 10px 24px -14px rgba(20, 24, 28, 0.18);
+  opacity: 0; transition: opacity 140ms ease;
+}
+.step-card:hover { transform: translateY(-2px); border-color: var(--green-mid); }
+.step-card:hover::after { opacity: 1; }
+.step-card.is-done:hover { border-color: var(--green); }
+
+/* Rows: tint only, no transform. Locked rows stay inert — a lift would read as clickable. */
+a.step-module:hover { background: var(--green-soft); }
+.step-module.is-locked:hover { background: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .step-card { transition: border-color 140ms ease; }
+  .step-card:hover { transform: none; }
+  .step-card::after { transition: none; }
+}
 
 /* Small mono chips: Bloom level tints deepen remember → analyze; status by state. */
 .tag {

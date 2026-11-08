@@ -160,7 +160,7 @@ function Quiz({ module: m, onLocked, onGraded }) {
 
   return (
     <section className="section" style={{ borderTop: '1px solid var(--rule)', paddingTop: 'var(--space-5)' }}>
-      <div className="label label--ink">CHECK YOUR UNDERSTANDING</div>
+      <div className="label label--section">CHECK YOUR UNDERSTANDING</div>
       {status && (
         <p className="muted" style={{ marginTop: 8, fontSize: 'var(--text-sm)' }}>
           Percobaan: {status.attempts} · Skor terbaik: {status.best_score === null ? '-' : `${Math.round(status.best_score * 100)}%`}

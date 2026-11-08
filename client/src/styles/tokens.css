@@ -22,7 +22,8 @@
   --surface: #ffffff;
   --ink: #14181c;
   --ink-muted: #59636f;
-  --ink-faint: #8b95a1;
+  /* WCAG AA on --bg: #8b95a1 measured 2.91:1 and failed for 11px uppercase labels. */
+  --ink-faint: #656f7b;
 
   /* One deep green as the only accent */
   --green: #1f5d45;
@@ -37,7 +38,8 @@
   --amber-soft: #f8ece1;
 
   /* Grey for locked, dimmed, zero states */
-  --locked: #a9aeb5;
+  /* Inactive items are WCAG-exempt, but #a9aeb5 (2.14:1) made locked module titles unreadable. */
+  --locked: #767d87;
   --locked-soft: #f0efec;
 
   /* Hairline rules instead of cards and shadows */
@@ -70,6 +72,9 @@
 .label--ink { color: var(--ink-muted); }
 .label--amber { color: var(--amber); }
 .label--green { color: var(--green); }
+/* Structural heading above a block of content. Green marks the page's skeleton;
+   label--ink stays for emphasised status text that is not a heading. */
+.label--section { color: var(--green); }
 
 /* Every number, metric and code fragment is mono. */
 .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }

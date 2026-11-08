@@ -89,7 +89,12 @@ terpengaruh**.
 - **Masih tersisa untuk dokumen.** Use case "Mengulang asesmen" pada use case
   diagram, class diagram, dan tabel `users` (nasib `diagnostic_status`).
 - **Setelah level berubah.** Pengguna memakai path level barunya mulai dari
-  modul pertama; progres di path lama tetap tersimpan tetapi tidak dipakai.
+  modul pertama; progres di path lama tetap tersimpan tetapi tidak dipakai. Path
+  lama tetap **bisa dibuka kembali** untuk mengulang materi (lihat A5b), tetapi
+  penyelesaian modul di sana tidak menghitung: tidak masuk tile *modules
+  completed* (dilaporkan terpisah sebagai `modules_completed_other`) dan tidak
+  membuka asesmen ulang, karena `retakeFor` hanya memuat path level pengguna
+  saat ini.
 
 ### A5. Gating modul
 
@@ -119,6 +124,39 @@ terpengaruh**.
 - **Masih tersisa untuk dokumen.** Fungsi ketujuh "Mengelola penguncian modul"
   (atau perluasan fungsi "Menyajikan learning path"), class diagram, dan
   activity diagram alur kuis modul (lulus, gagal, ulang).
+
+### A5b. Akses lintas path: level yang sudah dilewati
+
+**Keputusan sudah diambil dan diterapkan di kode.** Bagian ini tidak membatalkan
+A5; ia membatasi ruang lingkupnya. Rumusan A5 "modul terbuka kalau prasyaratnya
+`completed`" berlaku **di dalam path level pengguna**, bukan di seluruh aplikasi.
+
+- **Masalahnya.** Aturan lama mengunci path yang *tidak* sama dengan level
+  pengguna, termasuk level di bawahnya. Pengguna Intermediate tidak bisa
+  membuka kembali materi Beginner, padahal materi itu justru sudah ia lewati.
+  Bagi aplikasi pembelajaran, mengunci materi yang sudah dikuasai tidak punya
+  pembenaran pedagogis.
+- **Aturan yang diterapkan.** Setiap path punya satu dari tiga status akses,
+  dihitung dari urutan level (`pathAccess` di `server/src/learning.js`):
+
+  | Akses | Kapan | Perilaku |
+  |---|---|---|
+  | `current` | level pengguna | gating berurutan A5 berlaku penuh |
+  | `review` | level di bawah pengguna | terbuka seluruhnya, tidak ada modul terkunci |
+  | `locked` | level di atas pengguna, atau pengguna belum punya level | `GET /paths/:level` ditolak 403 `path_locked` |
+
+- **Di mana pengecualiannya tinggal.** Di dalam `moduleStatuses`
+  (`server/src/services/progression.js`), bukan di tiap pemanggil. Daftar modul,
+  detail modul, `start`, dan percobaan kuis semuanya membaca status modul lewat
+  fungsi itu, sehingga tidak mungkin satu rute lupa menerapkannya. Penentuannya
+  *fail closed*: pengguna, level, atau path yang tidak dikenali kembali ke
+  gating normal.
+- **Kuis di path review tetap dinilai dan tetap disimpan** di `quiz_attempts`,
+  tetapi kelulusannya tidak membuka apa pun, karena di path review tidak ada
+  yang terkunci.
+- **Masih tersisa untuk dokumen.** Activity diagram A5 harus menampilkan
+  percabangan akses ini, dan daftar fungsi perangkat lunak perlu menyebut bahwa
+  penguncian dihitung per path, bukan per modul secara global.
 
 ### A6. Daily Puzzle sebagai fitur penuh
 
@@ -272,7 +310,7 @@ Daily Puzzle dalam scope.
 
 | Butir pemeriksaan | Status |
 |---|---|
-| Kode sesuai diagram UML | Belum — A4, A5, A7 belum punya diagram (aturannya sudah final di kode). |
+| Kode sesuai diagram UML | Belum — A4, A5, A5b, A7 belum punya diagram (aturannya sudah final di kode). |
 | Nama koleksi dan field sesuai tabel basis data | Kode sudah mengikuti C1–C6 (model Mongoose di `server/src/models`); tinggal memasukkan bagian C ke dokumen BAB 3. |
 | UI sesuai mockup | Sebagian — enam layar utama sudah dibuat; editor kode masih textarea biasa, belum ada syntax highlighting. |
 | Tidak ada perilaku mockup tanpa bagian proposal | Belum — Puzzle, gating modul, kuis bernilai, timer, dan retake sudah berjalan di kode tetapi belum punya narasi di BAB 3. |
@@ -304,7 +342,9 @@ peserta mengirim ulang jawaban. Tulis bersama keputusan A1.
   diulang tanpa batas (A5). Peserta bisa mengubah satu jawaban per percobaan
   dan melihat apakah `correct_count` naik. Metrik "jumlah percobaan sampai
   lulus" karena itu tidak murni mengukur pemahaman; percobaan yang banyak dan
-  cepat berturut-turut lebih mungkin menandakan penebakan. Tafsirkan metrik ini
+  cepat berturut-turut lebih mungkin menandakan penebakan. Sejak A5b, permukaan
+  ini melebar: kuis di seluruh path level bawah juga terbuka untuk dicoba,
+  walau hasilnya tidak memengaruhi level maupun kelayakan asesmen ulang. Tafsirkan metrik ini
   bersama selang waktu antarpercobaan (`submitted_at` di `quiz_attempts`).
 
 ## E. Sumber materi modul (untuk BAB 3 dan Daftar Pustaka)

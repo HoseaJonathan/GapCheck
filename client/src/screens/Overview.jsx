@@ -27,7 +27,7 @@ export default function Overview() {
 
       <section className="section split">
         <div>
-          <div className="label label--ink">NEXT UP</div>
+          <div className="label label--section">NEXT UP</div>
           {data.next_up ? (
             <>
               <h2 style={{ marginTop: 8 }}>{data.next_up.module.title}</h2>
@@ -50,7 +50,7 @@ export default function Overview() {
         </div>
 
         <div>
-          <div className="label label--ink">IN PROGRESS</div>
+          <div className="label label--section">IN PROGRESS</div>
           <div className="stack" style={{ marginTop: 12 }}>
             {data.in_progress.map((m) => (
               <div key={m._id}>

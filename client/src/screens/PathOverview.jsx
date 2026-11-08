@@ -138,13 +138,13 @@ export default function PathOverview() {
       )}
 
       <section className="section">
-        <div className="label label--ink" style={{ marginBottom: 'var(--space-4)' }}>LANGKAH DAN MODUL</div>
+        <div className="label label--section" style={{ marginBottom: 'var(--space-4)' }}>LANGKAH DAN MODUL</div>
         <div className="steps">
           {p.steps.map((s, i) => <StepCard key={s.topic ?? 'extra'} step={s} index={i} />)}
         </div>
       </section>
 
-      {p.sources.length > 0 && <References items={p.sources} label="SUMBER MATERI JALUR INI" />}
+      {p.sources.length > 0 && <References items={p.sources} />}
     </div>
   );
 }

@@ -34,10 +34,14 @@ describe('learning paths (Modules landing and path overview)', () => {
     ]);
   });
 
-  it('only the learner\'s own level is open, lower levels included', async () => {
+  it('own level is current, lower levels are review, higher levels stay locked', async () => {
     const paths = await list(hosea);
-    assert.deepEqual(paths.map((p) => [p.level, p.locked, p.current]), [
-      ['new', true, false], ['beginner', false, true], ['intermediate', true, false],
+    assert.deepEqual(paths.map((p) => [p.level, p.access]), [
+      ['new', 'review'], ['beginner', 'current'], ['intermediate', 'locked'],
+    ]);
+    // The old booleans still describe the same three states for existing callers.
+    assert.deepEqual(paths.map((p) => [p.locked, p.current]), [
+      [false, false], [false, true], [true, false],
     ]);
   });
 
@@ -79,7 +83,8 @@ describe('learning paths (Modules landing and path overview)', () => {
   });
 
   it('403 for a locked path, 404 for an unknown level, 401 without a token', async () => {
-    const locked = await overview(hosea, 'new');
+    // 'new' is below hosea's level and therefore open now; 'intermediate' is above it.
+    const locked = await overview(hosea, 'intermediate');
     assert.equal(locked.status, 403);
     assert.equal(locked.body.reason, 'path_locked');
     assert.equal((await overview(nadia, 'beginner')).status, 403);
@@ -87,6 +92,24 @@ describe('learning paths (Modules landing and path overview)', () => {
     assert.equal(unknown.status, 404);
     assert.equal(unknown.body.reason, 'unknown_path');
     assert.equal((await request(app).get('/paths')).status, 401);
+  });
+
+  it('a level the learner has passed is open and never gated by its quizzes', async () => {
+    const res = await overview(hosea, 'new');
+    assert.equal(res.status, 200);
+    const modules = res.body.path.steps.flatMap((s) => s.modules);
+    assert.equal(modules.length, 6);
+    // Spec A5b: sequential `requires` gating applies inside the learner's own
+    // path only, so revisiting never means passing module 1's quiz again.
+    assert.deepEqual(modules.filter((m) => m.locked).map((m) => m.order), []);
+  });
+
+  it('a module in a review path can be started without a module_locked refusal', async () => {
+    const { path } = (await overview(hosea, 'new')).body;
+    // Module 3 has an unpassed prerequisite; in hosea's own path that would be 403.
+    const third = path.steps.flatMap((s) => s.modules).find((m) => m.order === 3);
+    const res = await request(app).post(`/modules/${third._id}/start`).set(auth(hosea));
+    assert.notEqual(res.status, 403);
   });
 
   it('an opened module names its path so the page can link back to the overview', async () => {

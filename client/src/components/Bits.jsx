@@ -57,6 +57,9 @@ export function LineChart({ points, threshold = 71 }) {
   const x = (i) => pad + (i * (w - pad * 2)) / Math.max(points.length - 1, 1);
   const y = (v) => h - pad - ((v / max) * (h - pad * 2));
   const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i)},${y(p.percentage)}`).join(' ');
+  // A centred label on the first or last point overflows the viewBox and gets
+  // clipped, so the ends anchor inward instead.
+  const anchor = (i) => (i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle');
 
   return (
     <svg viewBox={`0 0 ${w} ${h}`} width="100%" role="img"
@@ -70,7 +73,7 @@ export function LineChart({ points, threshold = 71 }) {
       {points.map((p, i) => (
         <g key={p._id}>
           <circle cx={x(i)} cy={y(p.percentage)} r="3" fill="var(--green)" />
-          <text x={x(i)} y={h - 8} textAnchor="middle" fontFamily="var(--font-mono)"
+          <text x={x(i)} y={h - 8} textAnchor={anchor(i)} fontFamily="var(--font-mono)"
                 fontSize="9" fill="var(--ink-faint)" letterSpacing="0.08em">
             {p.label.toUpperCase()}
           </text>

@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 import { HttpError } from '../errors.js';
-import { lockStates, retakeEligibility } from '../learning.js';
+import { lockStates, pathAccess, retakeEligibility } from '../learning.js';
 import AssessmentSession from '../models/AssessmentSession.js';
 import LearningPath from '../models/LearningPath.js';
 import Module from '../models/Module.js';
@@ -37,6 +37,24 @@ async function quizSummaries(userId, modules) {
 const NO_ATTEMPTS = { attempts: 0, best_score: null, passed: false };
 
 /**
+ * True when these modules belong to a path below the learner's level, which
+ * spec A5b opens for revisiting. Decided here rather than at each call site:
+ * list, detail, start and quiz all read module state through moduleStatuses,
+ * so one check cannot be forgotten by one of them.
+ * Fails closed — an unknown user, level or path keeps the normal gating.
+ */
+async function isReviewPath(userId, modules) {
+  const pathId = modules[0]?.path_id;
+  if (!pathId) return false;
+  const [user, path] = await Promise.all([
+    User.findById(userId).select('level').lean(),
+    LearningPath.findById(pathId).select('level').lean(),
+  ]);
+  if (!user?.level || !path?.level) return false;
+  return pathAccess(user.level, path.level) === 'review';
+}
+
+/**
  * Everything a module card shows for one learner. `modules` must be one whole
  * path: locks are computed within it, so a prerequisite outside the list counts
  * as met (lockStates).
@@ -44,10 +62,10 @@ const NO_ATTEMPTS = { attempts: 0, best_score: null, passed: false };
 export async function moduleStatuses(userId, modules) {
   // aggregate() does not cast like find() does, so the id is cast here.
   const uid = new mongoose.Types.ObjectId(String(userId));
-  const [progress, quizzes, admin] = await Promise.all([
-    progressMap(uid, modules), quizSummaries(uid, modules), isAdmin(uid),
+  const [progress, quizzes, admin, reviewing] = await Promise.all([
+    progressMap(uid, modules), quizSummaries(uid, modules), isAdmin(uid), isReviewPath(uid, modules),
   ]);
-  const locks = lockStates(modules, progress, { open: admin });
+  const locks = lockStates(modules, progress, { open: admin || reviewing });
   return new Map(modules.map((m) => {
     const id = String(m._id);
     const row = progress.get(id);

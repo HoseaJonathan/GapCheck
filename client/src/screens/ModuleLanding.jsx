@@ -12,10 +12,10 @@ function intro(paths) {
   if (api.user?.is_admin) return 'Mode admin: semua jalur terbuka untuk pengujian.';
   const current = paths.find((p) => p.current);
   if (!current) return 'Kerjakan asesmen diagnostik dulu. Hasilnya menentukan jalur mana yang terbuka untuk kamu.';
-  return `Asesmen menempatkan kamu di level ${LEVEL_LABEL[current.level]}, jadi jalur ${pad2(current.order)} yang terbuka. Jalur lain terbuka kalau asesmen ulang menempatkan kamu di level itu.`;
+  return `Asesmen menempatkan kamu di level ${LEVEL_LABEL[current.level]}, jadi jalur ${pad2(current.order)} yang kamu kerjakan sekarang. Jalur di bawahnya tetap terbuka kalau kamu mau mengulang materinya; jalur di atasnya terbuka setelah asesmen ulang menempatkan kamu di sana.`;
 }
 
-/** /modules: the three level paths as cards; only the learner's own level is open. */
+/** /modules: the three level paths as cards, each in one of three access states (spec A5b). */
 export default function ModuleLanding() {
   const { data, loading, error } = useApi(() => api.paths(), []);
   if (loading) return <Loading />;
@@ -25,7 +25,7 @@ export default function ModuleLanding() {
 
   return (
     <div className="page">
-      <div className="label label--ink">MODULES · JALUR BELAJAR</div>
+      <div className="label label--section">MODULES · JALUR BELAJAR</div>
       <h1 style={{ marginTop: 10 }}>Tiga jalur, satu per level</h1>
       <p style={{ marginTop: 'var(--space-4)' }}>{intro(paths)}</p>
       {noLevel && <Link className="btn" to="/assessment">Mulai asesmen diagnostik</Link>}
@@ -37,17 +37,27 @@ export default function ModuleLanding() {
   );
 }
 
+/** Wording per access state, so the card and its screen-reader label never disagree. */
+const STATE = {
+  current: { note: null, aria: '', cta: 'Baca selengkapnya' },
+  review: { note: 'SUDAH DILEWATI · BISA DIULANG', aria: ', sudah dilewati', cta: 'Ulangi jalur ini' },
+  locked: { note: 'TERKUNCI', aria: ', terkunci', cta: 'Baca selengkapnya' },
+};
+
 function PathCard({ path: p }) {
-  const cls = `path-card path-card--${p.level}${p.locked ? ' is-locked' : ''}${p.current ? ' is-current' : ''}`;
+  // `access` is the single source of truth; `current`/`locked` remain for older callers.
+  const access = p.access ?? (p.current ? 'current' : p.locked ? 'locked' : 'review');
+  const state = STATE[access] ?? STATE.locked;
+  const cls = `path-card path-card--${p.level} is-${access}`;
   return (
-    <section className={cls} aria-label={`Jalur ${pad2(p.order)} ${LEVEL_LABEL[p.level]}${p.locked ? ', terkunci' : ''}`}>
+    <section className={cls} aria-label={`Jalur ${pad2(p.order)} ${LEVEL_LABEL[p.level]}${state.aria}`}>
       <div className="path-card__head">
         <div className="path-card__num">{pad2(p.order)}</div>
         <div className="path-card__level">{LEVEL_LABEL[p.level]}</div>
+        {access === 'current' && <span className="path-card__here">Kamu di sini</span>}
       </div>
       <div className="path-card__body">
-        {p.current && <span className="label label--green">LEVEL KAMU</span>}
-        {p.locked && <span className="label">TERKUNCI</span>}
+        {state.note && <span className={`label${access === 'review' ? ' label--green' : ''}`}>{state.note}</span>}
         <h2>{p.title}</h2>
         <p>{p.description}</p>
         {p.steps?.length > 0 && (
@@ -65,10 +75,10 @@ function PathCard({ path: p }) {
         )}
         <div className="path-card__foot">
           <div className="label">{p.module_count} MODUL · ±{hours(p.estimated_minutes)} JAM</div>
-          {p.locked ? (
-            <button type="button" className="btn" disabled>Baca selengkapnya</button>
+          {access === 'locked' ? (
+            <button type="button" className="btn" disabled>{state.cta}</button>
           ) : (
-            <Link className="btn" to={`/paths/${p.level}`}>Baca selengkapnya</Link>
+            <Link className="btn" to={`/paths/${p.level}`}>{state.cta}</Link>
           )}
         </div>
       </div>

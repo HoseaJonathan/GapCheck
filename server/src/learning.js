@@ -9,6 +9,23 @@
  */
 import { QUIZ_PASS_THRESHOLD } from './config.js';
 
+/** Path levels in ascending order; an index is the level's rank. */
+export const LEVELS = ['new', 'beginner', 'intermediate'];
+
+/**
+ * What access a learner has to a path (spec A5b).
+ *   current — their own level, gated sequentially by `requires`
+ *   review  — below their level: already passed, so open for revisiting
+ *   locked  — above their level, or they have no level yet
+ */
+export function pathAccess(userLevel, pathLevel) {
+  const mine = LEVELS.indexOf(userLevel);
+  const theirs = LEVELS.indexOf(pathLevel);
+  if (mine < 0 || theirs < 0) return 'locked';
+  if (theirs < mine) return 'review';
+  return theirs === mine ? 'current' : 'locked';
+}
+
 const round2 = (n) => Number(n.toFixed(2));
 const pad2 = (n) => String(n).padStart(2, '0');
 // Dates are compared as timestamps so Date objects and ISO strings both work.
