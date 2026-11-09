@@ -290,8 +290,13 @@ describe('retake rule on POST /sessions', () => {
   });
   after(seed);
 
-  const pass = (token, mod) => request(app).post(`/modules/${mod._id}/quiz/attempts`).set(auth(token))
-    .send({ answers: mod.quiz.map((q) => q.correct_answer) });
+  // Opening the material page is what makes a module's quiz answerable (spec A5),
+  // so the start call stands in for the learner opening it.
+  const pass = async (token, mod) => {
+    await request(app).post(`/modules/${mod._id}/start`).set(auth(token));
+    return request(app).post(`/modules/${mod._id}/quiz/attempts`).set(auth(token))
+      .send({ answers: mod.quiz.map((q) => q.correct_answer) });
+  };
 
   // The cases below run in order: hosea is locked until the step is passed in the third one.
   it('a learner who has not finished a step since the last assessment is refused', async () => {

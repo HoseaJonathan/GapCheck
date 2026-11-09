@@ -288,6 +288,8 @@ describe('a completed path', () => {
     assert.equal(mods.length, 9);
     // In order, because each module opens only once the one before it is passed.
     for (const m of mods) {
+      // Opening the material page is what makes a module's quiz answerable (spec A5).
+      await post(hosea, `/modules/${m._id}/start`, {});
       const res = await post(hosea, `/modules/${m._id}/quiz/attempts`, { answers: m.quiz.map((q) => q.correct_answer) });
       assert.equal(res.status, 201, `module ${m.order}`);
       assert.equal(res.body.passed, true, `module ${m.order}`);

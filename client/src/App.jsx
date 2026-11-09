@@ -6,6 +6,7 @@ import Overview from './screens/Overview.jsx';
 import Progress from './screens/Progress.jsx';
 import Result from './screens/Result.jsx';
 import ModuleScreen from './screens/ModuleScreen.jsx';
+import ModuleQuiz from './screens/ModuleQuiz.jsx';
 import ModuleLanding from './screens/ModuleLanding.jsx';
 import PathOverview from './screens/PathOverview.jsx';
 import Assessment from './screens/Assessment.jsx';
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/modules" element={<ModuleLanding />} />
           <Route path="/paths/:level" element={<PathOverview />} />
           <Route path="/modules/:id" element={<ModuleScreen />} />
+          <Route path="/modules/:id/quiz" element={<ModuleQuiz />} />
           <Route path="/puzzle" element={<Puzzle />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

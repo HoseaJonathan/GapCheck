@@ -1,47 +1,57 @@
 import { Link, useParams } from 'react-router-dom';
 import { api, useApi } from '../api.js';
-import { Bar, Loading, Tile } from '../components/Bits.jsx';
+import { Bar, Loading } from '../components/Bits.jsx';
 import References from '../components/References.jsx';
 import { LEVEL_LABEL } from './ModuleLanding.jsx';
 
 const pad2 = (n) => String(n).padStart(2, '0');
-// Bloom levels (revised taxonomy) as the verbs used in the Indonesian copy.
+
+// Bloom levels (revised taxonomy) as the verbs the Indonesian copy uses, so the
+// cognitive level reads as a word rather than as a badge in another language.
 const BLOOM_ID = {
-  remember: 'mengingat', understand: 'memahami', apply: 'menerapkan',
-  analyze: 'menganalisis', evaluate: 'mengevaluasi', create: 'mencipta',
+  remember: 'Mengingat', understand: 'Memahami', apply: 'Menerapkan',
+  analyze: 'Menganalisis', evaluate: 'Mengevaluasi', create: 'Mencipta',
 };
 
-function moduleState(m) {
-  if (m.locked) return <span className="tag tag--locked">TERKUNCI</span>;
-  if (m.state === 'completed') return <span className="tag tag--done">SELESAI</span>;
-  if (m.state === 'in_progress') return <span className="tag tag--progress">SEDANG</span>;
-  return <span className="tag tag--open">TERBUKA</span>;
+/** Lesson status as a word. A coloured pill per row would out-shout the titles. */
+function ModuleState({ module: m }) {
+  if (m.locked) return <span className="state state--locked">Terkunci</span>;
+  if (m.state === 'completed') return <span className="state state--done">Selesai</span>;
+  if (m.state === 'in_progress') return <span className="state state--progress">Dikerjakan</span>;
+  return <span className="state state--open">Belum mulai</span>;
 }
 
-/** One step of the path as a card: tinted head, its modules, and how many are done. */
+/** One step of the path: its lessons, and how many of them are done. */
 function StepCard({ step: s, index }) {
   const done = s.modules.filter((m) => m.state === 'completed').length;
   const allDone = s.modules.length > 0 && done === s.modules.length;
+
   return (
     <section className={`step-card${allDone ? ' is-done' : ''}`}>
       <div className="step-card__head">
-        <div className="step-card__num">LANGKAH {pad2(index + 1)}</div>
-        <h2 style={{ marginTop: 6 }}>{s.title}</h2>
-        {s.reason && <p>{s.reason}</p>}
+        <div>
+          <div className="step-card__eyebrow">Langkah {pad2(index + 1)}</div>
+          <h3 className="step-card__title">{s.title}</h3>
+        </div>
+        <div className="step-card__count">{done}/{s.modules.length}</div>
+        {s.reason && <p className="step-card__reason">{s.reason}</p>}
       </div>
+
       <div className="step-card__modules">
-        {s.modules.length === 0 && <p className="faint" style={{ fontSize: 'var(--text-sm)', margin: 'var(--space-3) 0' }}>Belum ada modul di langkah ini.</p>}
+        {s.modules.length === 0 && <p className="step-card__empty">Belum ada modul di langkah ini.</p>}
         {s.modules.map((m) => {
           const inner = (
             <>
               <div className="step-module__title">
-                <span className="mono faint">{pad2(m.order)}</span>
+                <span className="step-module__num">{pad2(m.order)}</span>
                 <span>{m.title}</span>
               </div>
+              {/* Separators are drawn by CSS on each item after the first, so a
+                  wrapped line never leaves a dot dangling behind it. */}
               <div className="step-module__meta">
-                <span className={`tag tag--${m.bloom_level}`}>{m.bloom_level}</span>
-                <span className="mono faint" style={{ fontSize: 'var(--text-xs)' }}>{m.estimated_minutes} mnt</span>
-                <span style={{ marginLeft: 'auto' }}>{moduleState(m)}</span>
+                <span>{BLOOM_ID[m.bloom_level] ?? m.bloom_level}</span>
+                <span>{m.estimated_minutes} menit</span>
+                <ModuleState module={m} />
               </div>
             </>
           );
@@ -50,10 +60,11 @@ function StepCard({ step: s, index }) {
             : <Link key={m._id} className="step-module" to={`/modules/${m._id}`}>{inner}</Link>;
         })}
       </div>
+
       <div className="step-card__foot">
-        <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
-          <span className="label">PROGRES</span>
-          <span className="mono" style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-muted)' }}>{done}/{s.modules.length}</span>
+        <div className="path-progress__row" style={{ marginBottom: 'var(--space-2)' }}>
+          <span className="path-progress__label">Progres langkah</span>
+          <span className="path-progress__value">{done} dari {s.modules.length}</span>
         </div>
         <Bar value={s.modules.length ? (done / s.modules.length) * 100 : 0} />
       </div>
@@ -70,13 +81,13 @@ export default function PathOverview() {
     const locked = error.status === 403;
     return (
       <div className="page">
-        <div className="label label--ink">JALUR · {locked ? 'TERKUNCI' : 'TIDAK DITEMUKAN'}</div>
-        <div className="callout" style={{ marginTop: 'var(--space-5)' }}>
+        <Link to="/modules" className="crumb">← Semua jalur</Link>
+        <h1>{locked ? 'Jalur ini belum terbuka' : 'Jalur tidak ditemukan'}</h1>
+        <p style={{ marginTop: 'var(--space-4)' }}>
           {locked
-            ? 'Jalur ini belum terbuka untuk kamu. Jalur yang terbuka mengikuti level hasil asesmen kamu.'
-            : 'Jalur ini tidak ada.'}
-        </div>
-        <div style={{ marginTop: 16 }}><Link to="/modules">← Semua jalur</Link></div>
+            ? 'Jalur yang terbuka mengikuti level hasil asesmen kamu. Level di bawahmu selalu bisa dibuka kembali.'
+            : 'Alamat jalur ini tidak ada.'}
+        </p>
       </div>
     );
   }
@@ -84,61 +95,67 @@ export default function PathOverview() {
   const { path: p, next_module: next } = data;
   const modules = p.steps.flatMap((s) => s.modules);
   const done = modules.filter((m) => m.state === 'completed').length;
+  const percent = p.module_count ? Math.round((done / p.module_count) * 100) : 0;
 
   return (
     <div className="page">
-      <Link to="/modules" className="muted" style={{ fontSize: 'var(--text-sm)' }}>← Semua jalur</Link>
-      <div className="path-hero">
-        <div className="label label--green">
-          JALUR {pad2(p.order)} · {LEVEL_LABEL[p.level].toUpperCase()} · IKHTISAR
-        </div>
-        <h1 style={{ marginTop: 10 }}>{p.title}</h1>
-        <p style={{ marginTop: 'var(--space-4)', fontSize: 'var(--text-lg)' }}>{p.overview || p.description}</p>
+      <Link to="/modules" className="crumb">← Semua jalur</Link>
 
-        <div className="row" style={{ marginTop: 'var(--space-5)' }}>
+      <section className="path-hero">
+        <div className="eyebrow">Jalur {pad2(p.order)} · {LEVEL_LABEL[p.level]}</div>
+        <h1 className="path-hero__title">{p.title}</h1>
+        <p className="path-hero__lead">{p.overview || p.description}</p>
+
+        <div className="path-hero__actions">
           {next ? (
-            <Link className="btn" to={`/modules/${next._id}`}>
-              {next.started ? 'Lanjutkan' : 'Mulai'} modul {pad2(next.order)}
-            </Link>
+            <>
+              <Link className="btn btn--lg" to={`/modules/${next._id}`}>
+                {next.started ? 'Lanjutkan' : 'Mulai'} modul {pad2(next.order)}
+              </Link>
+              <span className="path-hero__next">{next.title}</span>
+            </>
           ) : (
             <span className="callout callout--green">Semua modul di jalur ini sudah selesai.</span>
           )}
-          {next && <span style={{ fontSize: 'var(--text-sm)', color: 'var(--green-ink)' }}>{next.title}</span>}
         </div>
 
-        <div className="tiles">
-          <Tile label="MODUL"><span className="metric" style={{ fontSize: 'var(--text-xl)' }}>{p.module_count}</span></Tile>
-          <Tile label="PERKIRAAN WAKTU" caption="Jumlah estimasi semua modul">
-            <span className="metric" style={{ fontSize: 'var(--text-xl)' }}>{p.estimated_minutes}</span>
-            <span className="metric__unit mono" style={{ fontSize: 'var(--text-sm)' }}>menit</span>
-          </Tile>
-          <Tile label="TINGKAT BLOOM" caption={p.bloom_from && `Dari ${BLOOM_ID[p.bloom_from]} sampai ${BLOOM_ID[p.bloom_to]}`}>
-            {p.bloom_from ? (
-              <span className="row" style={{ gap: 6 }}>
-                <span className={`tag tag--${p.bloom_from}`}>{p.bloom_from}</span>
-                <span className="faint">→</span>
-                <span className={`tag tag--${p.bloom_to}`}>{p.bloom_to}</span>
-              </span>
-            ) : '-'}
-          </Tile>
-          <Tile label="SELESAI" caption={`${p.module_count - done} modul lagi`}>
-            <span className="metric" style={{ fontSize: 'var(--text-xl)' }}>{done}</span>
-            <span className="metric__unit mono" style={{ fontSize: 'var(--text-sm)' }}>/ {p.module_count}</span>
-          </Tile>
+        <div className="path-progress">
+          <div className="path-progress__row">
+            <span className="path-progress__label">Progres jalur</span>
+            <span className="path-progress__value">{done} dari {p.module_count} modul · {percent}%</span>
+          </div>
+          <Bar value={percent} />
         </div>
-      </div>
+
+        <div className="statline">
+          <div className="statline__item">
+            <div className="statline__k">Modul</div>
+            <div className="statline__v">{p.module_count}</div>
+          </div>
+          <div className="statline__item">
+            <div className="statline__k">Estimasi waktu</div>
+            <div className="statline__v">{p.estimated_minutes}<small>menit</small></div>
+          </div>
+          <div className="statline__item">
+            <div className="statline__k">Tingkat kognitif</div>
+            <div className="statline__v" style={{ fontSize: 'var(--text-lg)' }}>
+              {p.bloom_from ? `${BLOOM_ID[p.bloom_from]} → ${BLOOM_ID[p.bloom_to]}` : '—'}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {p.outcomes.length > 0 && (
-        <section className="section" style={{ marginTop: 'var(--space-6)' }}>
-          <div className="label label--ink">SETELAH JALUR INI KAMU BISA</div>
-          <ul style={{ marginTop: 12, paddingLeft: 18, color: 'var(--ink-muted)' }}>
-            {p.outcomes.map((o) => <li key={o} style={{ marginBottom: 6 }}>{o}</li>)}
+        <section className="section" style={{ marginTop: 'var(--space-7)' }}>
+          <h2 className="section-title">Setelah jalur ini kamu bisa</h2>
+          <ul className="outcomes">
+            {p.outcomes.map((o) => <li key={o}>{o}</li>)}
           </ul>
         </section>
       )}
 
       <section className="section">
-        <div className="label label--section" style={{ marginBottom: 'var(--space-4)' }}>LANGKAH DAN MODUL</div>
+        <h2 className="section-title" style={{ marginBottom: 'var(--space-4)' }}>Langkah dan modul</h2>
         <div className="steps">
           {p.steps.map((s, i) => <StepCard key={s.topic ?? 'extra'} step={s} index={i} />)}
         </div>

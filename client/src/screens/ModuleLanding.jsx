@@ -25,9 +25,9 @@ export default function ModuleLanding() {
 
   return (
     <div className="page">
-      <div className="label label--section">MODULES · JALUR BELAJAR</div>
-      <h1 style={{ marginTop: 10 }}>Tiga jalur, satu per level</h1>
-      <p style={{ marginTop: 'var(--space-4)' }}>{intro(paths)}</p>
+      <div className="eyebrow">Jalur belajar</div>
+      <h1 style={{ marginTop: 'var(--space-2)' }}>Tiga jalur, satu per level</h1>
+      <p style={{ marginTop: 'var(--space-4)', fontSize: 'var(--text-lg)', maxWidth: '62ch' }}>{intro(paths)}</p>
       {noLevel && <Link className="btn" to="/assessment">Mulai asesmen diagnostik</Link>}
 
       <div className="paths">
@@ -40,8 +40,8 @@ export default function ModuleLanding() {
 /** Wording per access state, so the card and its screen-reader label never disagree. */
 const STATE = {
   current: { note: null, aria: '', cta: 'Baca selengkapnya' },
-  review: { note: 'SUDAH DILEWATI · BISA DIULANG', aria: ', sudah dilewati', cta: 'Ulangi jalur ini' },
-  locked: { note: 'TERKUNCI', aria: ', terkunci', cta: 'Baca selengkapnya' },
+  review: { note: 'Sudah dilewati — bisa diulang', aria: ', sudah dilewati', cta: 'Ulangi jalur ini' },
+  locked: { note: 'Terkunci', aria: ', terkunci', cta: 'Baca selengkapnya' },
 };
 
 function PathCard({ path: p }) {
@@ -57,24 +57,28 @@ function PathCard({ path: p }) {
         {access === 'current' && <span className="path-card__here">Kamu di sini</span>}
       </div>
       <div className="path-card__body">
-        {state.note && <span className={`label${access === 'review' ? ' label--green' : ''}`}>{state.note}</span>}
+        {state.note && (
+          <span className="path-card__meta" style={access === 'review' ? { color: 'var(--green)' } : undefined}>
+            {state.note}
+          </span>
+        )}
         <h2>{p.title}</h2>
         <p>{p.description}</p>
         {p.steps?.length > 0 && (
           <div>
-            <div className="label" style={{ marginTop: 'var(--space-2)' }}>YANG AKAN KAMU PELAJARI</div>
+            <div className="path-card__meta" style={{ marginTop: 'var(--space-2)' }}>Yang akan kamu pelajari</div>
             <ol className="path-card__steps">
               {p.steps.map((s) => (
                 <li key={s.title}>
                   <span>{s.title}</span>
-                  <span className="mono faint">{s.module_count} modul</span>
+                  <span className="muted" style={{ fontVariantNumeric: 'tabular-nums' }}>{s.module_count} modul</span>
                 </li>
               ))}
             </ol>
           </div>
         )}
         <div className="path-card__foot">
-          <div className="label">{p.module_count} MODUL · ±{hours(p.estimated_minutes)} JAM</div>
+          <div className="path-card__meta">{p.module_count} modul · ±{hours(p.estimated_minutes)} jam</div>
           {access === 'locked' ? (
             <button type="button" className="btn" disabled>{state.cta}</button>
           ) : (

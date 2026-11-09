@@ -211,6 +211,8 @@ describe('modules', () => {
       completed_at: new Date('2026-09-01T00:00:00Z'),
     });
     try {
+      // Opening the material page is what makes a module's quiz answerable (spec A5).
+      await start(hosea, beginner[9]._id);
       const res = await submit(hosea, beginner[9]._id, await keyOf(beginner[9]._id));
       assert.equal(res.status, 201);
       assert.equal(res.body.passed, true);
@@ -312,5 +314,55 @@ describe('modules', () => {
     assert.equal((await request(app).post(`/modules/${id}/start`)).status, 401);
     assert.equal((await request(app).post(`/modules/${id}/quiz/attempts`).send({ answers: [] })).status, 401);
     assert.equal((await request(app).get(`/modules/${id}/quiz/attempts`)).status, 401);
+  });
+});
+
+/*
+ * The quiz lives on its own page, reachable only once the material page has
+ * been opened (that page calls start, which writes the progress row). These
+ * cases pin the server side of that rule. The New path is used because it is a
+ * review path for hosea (spec A5b): every module is open, and none is started.
+ */
+describe('quiz requires the material to have been opened', () => {
+  let hosea;
+  let admin;
+  const newPath = [];
+
+  before(async () => {
+    [hosea, admin] = await Promise.all([
+      login(app, 'hosea@gapcheck.test'), login(app, 'admin@gapcheck.test'),
+    ]);
+    const path = await LearningPath.findOne({ level: 'new' }).lean();
+    const mods = await Module.find({ path_id: path._id }).sort({ order: 1 }).lean();
+    for (const m of mods) newPath[m.order] = m;
+  });
+
+  const wrongAnswers = async (id) => {
+    const mod = await Module.findById(id).select('+quiz.correct_answer').lean();
+    return mod.quiz.map((q) => q.options.find((o) => o.key !== q.correct_answer).key);
+  };
+  const attempt = async (token, id) =>
+    request(app).post(`/modules/${id}/quiz/attempts`).set(auth(token)).send({ answers: await wrongAnswers(id) });
+
+  it('409 module_not_started when the module was never opened', async () => {
+    const target = newPath[3];
+    assert.equal(await Progress.exists({ user_id: (await User.findOne({ username: 'hosea' }).lean())._id, module_id: target._id }), null);
+    const res = await attempt(hosea, target._id);
+    assert.equal(res.status, 409);
+    assert.equal(res.body.reason, 'module_not_started');
+  });
+
+  it('the same attempt is graded once the material page has been opened', async () => {
+    const target = newPath[3];
+    assert.equal((await request(app).post(`/modules/${target._id}/start`).set(auth(hosea))).status, 200);
+    const res = await attempt(hosea, target._id);
+    assert.equal(res.status, 201);
+    assert.equal(res.body.passed, false);
+  });
+
+  it('the admin bypasses the rule, like every other gate', async () => {
+    const target = newPath[4];
+    const res = await attempt(admin, target._id);
+    assert.notEqual(res.status, 409);
   });
 });

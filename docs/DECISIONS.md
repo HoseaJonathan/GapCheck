@@ -121,6 +121,15 @@ terpengaruh**.
     gagal hanya mengembalikan skor.
   - Kelulusan pertama menulis `progress.completed_at` sekali dan tidak pernah
     menimpanya.
+  - **Kuis berada di halaman sendiri** (`/modules/:id/quiz`), terpisah dari
+    materi, dan hanya terbuka setelah halaman materi dibuka — halaman materi
+    memanggil `start`, yang menulis baris `progress`. Aturan ini ditegakkan di
+    server, bukan hanya di klien: percobaan kuis pada modul tanpa baris
+    progress ditolak `409 module_not_started`. Akun admin (dev/demo)
+    melewatinya, seperti ia melewati gerbang lain.
+  - Perlu dicatat untuk interpretasi BAB 4: aturan ini mencegah pintasan URL
+    langsung ke soal, **bukan** menjamin materi benar-benar dibaca. Kelulusan
+    modul tetap hanya bukti kuis terjawab, bukan bukti keterpaparan materi.
 - **Masih tersisa untuk dokumen.** Fungsi ketujuh "Mengelola penguncian modul"
   (atau perluasan fungsi "Menyajikan learning path"), class diagram, dan
   activity diagram alur kuis modul (lulus, gagal, ulang).
@@ -312,7 +321,7 @@ Daily Puzzle dalam scope.
 |---|---|
 | Kode sesuai diagram UML | Belum — A4, A5, A5b, A7 belum punya diagram (aturannya sudah final di kode). |
 | Nama koleksi dan field sesuai tabel basis data | Kode sudah mengikuti C1–C6 (model Mongoose di `server/src/models`); tinggal memasukkan bagian C ke dokumen BAB 3. |
-| UI sesuai mockup | Sebagian — enam layar utama sudah dibuat; editor kode masih textarea biasa, belum ada syntax highlighting. |
+| UI sesuai mockup | **Menyimpang secara sadar** sejak redesign (lihat G). Editor kode masih textarea biasa, belum ada syntax highlighting. |
 | Tidak ada perilaku mockup tanpa bagian proposal | Belum — Puzzle, gating modul, kuis bernilai, timer, dan retake sudah berjalan di kode tetapi belum punya narasi di BAB 3. |
 | Setiap kebutuhan punya kasus uji black box | Sebagian — validasi `?difficulty=` dan 401 sudah diuji; matriks equivalence partitioning dan boundary value analysis belum ditulis. |
 
@@ -453,3 +462,26 @@ Belum ada di mockup Figma maupun BAB 3; keduanya perlu ditambahkan.
 |---|---|---|
 | `overview` | String | Uraian jalur yang ditampilkan pada halaman ikhtisar sebelum modul pertama. |
 | `outcomes` | Array of String | Capaian belajar: kemampuan yang dimiliki pengguna setelah menyelesaikan jalur. |
+
+## G. Penyimpangan sadar dari mockup: bahasa visual antarmuka
+
+**Keputusan sudah diambil dan sebagian diterapkan.**
+
+- **Apa yang berubah.** Mockup Figma memakai label mono huruf kapital berukuran
+  11px untuk hampir semua teks penyerta — judul bagian, satuan, status, dan
+  tingkat Bloom. Antarmuka sekarang memakai huruf kalimat dengan ukuran minimal
+  12px; mono hanya dipertahankan untuk angka dan kode.
+- **Alasannya.** (1) Keterbacaan: label 11px kapital dengan letter-spacing lebar
+  adalah bentuk teks paling sulit dibaca di seluruh antarmuka, dan sebagian di
+  antaranya tidak memenuhi WCAG AA. (2) Kesesuaian jenis produk: aplikasi ini
+  adalah platform pembelajaran, bukan dasbor analitik, sehingga teks penyerta
+  seharusnya menyatu dengan prosa, bukan bersaing dengannya.
+- **Akibatnya untuk dokumen.** Tangkapan layar di BAB 4 harus diambil dari
+  aplikasi berjalan, bukan dari mockup, dan BAB 3 perlu menyebut bahwa mockup
+  berfungsi sebagai rancangan tata letak, bukan sebagai spesifikasi final gaya
+  visual. Butir "UI sesuai mockup" pada bagian D dibaca dengan catatan ini.
+- **Cakupan saat ini.** Token (palet sage, skala tipografi, sistem spasi 8px,
+  titik henti responsif) berlaku untuk seluruh aplikasi. Penulisan ulang teks
+  penyerta baru selesai di layar belajar: Modules, Path Overview, Module, dan
+  Overview. Progress, Result, Puzzle, Login, dan Assessment masih memakai label
+  kapital lama dan menyusul di tahap berikutnya.

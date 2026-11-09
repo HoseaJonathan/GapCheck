@@ -1,46 +1,40 @@
 import { useId, useState } from 'react';
 
-/** How many sources show before the reader asks for the rest. */
-const COLLAPSED = 5;
-
 /**
  * The official pages the content was checked against (a module's, or a whole
- * path's). Long lists collapse: a path can cite sixteen sources, which buries
- * whatever follows the card.
+ * path's). Collapsed by default: sources are provenance, not study material,
+ * so they must not compete with the lessons above them.
  */
-export default function References({ items, label = 'REFERENSI' }) {
-  const [expanded, setExpanded] = useState(false);
+export default function References({ items, label = 'Referensi' }) {
+  const [open, setOpen] = useState(false);
   const listId = useId();
-  const hidden = Math.max(0, items.length - COLLAPSED);
-  // Always sliced from the start, so the ordinals keep counting across the toggle.
-  const shown = expanded ? items : items.slice(0, COLLAPSED);
 
   return (
     <section className="ref-card">
-      <div className="ref-card__head">
-        <div className="label label--section">{label}</div>
-      </div>
-      <div className="ref-card__body">
-        <ol className="ref-list" id={listId}>
-          {shown.map((r) => (
+      <button
+        type="button"
+        className="ref-card__toggle"
+        aria-expanded={open}
+        aria-controls={listId}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="section-title" style={{ fontSize: 'var(--text-base)' }}>{label}</span>
+        <span className="ref-card__count">{items.length} sumber</span>
+        <svg className="ref-card__caret" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {/* Kept in the DOM while closed so aria-controls always points at it. */}
+      <div className="ref-card__body" id={listId} hidden={!open}>
+        <ol className="ref-list">
+          {items.map((r) => (
             <li key={r.url}>
               <a href={r.url} target="_blank" rel="noreferrer">{r.title}</a>
-              <span className="muted"> — {r.publisher}</span>
-              <span className="muted mono" style={{ marginLeft: 8 }}>diakses {r.accessed_at}</span>
+              {' — '}{r.publisher}
+              <span className="mono" style={{ marginLeft: 8 }}>diakses {r.accessed_at}</span>
             </li>
           ))}
         </ol>
-        {hidden > 0 && (
-          <button
-            type="button"
-            className="btn btn--ghost ref-card__more"
-            aria-expanded={expanded}
-            aria-controls={listId}
-            onClick={() => setExpanded((v) => !v)}
-          >
-            {expanded ? 'Tampilkan lebih sedikit' : `Tampilkan ${hidden} lainnya`}
-          </button>
-        )}
       </div>
     </section>
   );

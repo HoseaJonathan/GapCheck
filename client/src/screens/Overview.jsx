@@ -2,6 +2,12 @@ import { Link } from 'react-router-dom';
 import { api, pathMessage, useApi } from '../api.js';
 import { Bar, Loading, ScoreTrack } from '../components/Bits.jsx';
 
+// Bloom levels as the verbs the Indonesian copy uses, matching PathOverview.
+const BLOOM_ID = {
+  remember: 'Mengingat', understand: 'Memahami', apply: 'Menerapkan',
+  analyze: 'Menganalisis', evaluate: 'Mengevaluasi', create: 'Mencipta',
+};
+
 export default function Overview() {
   const { data, loading } = useApi(() => api.overview(), []);
   if (loading || !data) return <Loading />;
@@ -27,14 +33,14 @@ export default function Overview() {
 
       <section className="section split">
         <div>
-          <div className="label label--section">NEXT UP</div>
+          <h2 className="section-title">Lanjutkan di sini</h2>
           {data.next_up ? (
             <>
               <h2 style={{ marginTop: 8 }}>{data.next_up.module.title}</h2>
               <p style={{ marginTop: 8 }}>{data.next_up.reason}</p>
               <div className="row">
-                <span className="label">BLOOM: {data.next_up.module.bloom_level.toUpperCase()}</span>
-                <span className="label">{data.next_up.module.estimated_minutes} MIN</span>
+                <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>{BLOOM_ID[data.next_up.module.bloom_level] ?? data.next_up.module.bloom_level}</span>
+                <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>{data.next_up.module.estimated_minutes} menit</span>
               </div>
               <div style={{ marginTop: 16 }}>
                 <Link className="btn" to={`/modules/${data.next_up.module._id}`}>Buka modul</Link>
@@ -50,7 +56,7 @@ export default function Overview() {
         </div>
 
         <div>
-          <div className="label label--section">IN PROGRESS</div>
+          <h2 className="section-title">Sedang dikerjakan</h2>
           <div className="stack" style={{ marginTop: 12 }}>
             {data.in_progress.map((m) => (
               <div key={m._id}>
@@ -70,7 +76,7 @@ export default function Overview() {
       {data.retake && (
         <>
           <section className="section">
-            <div className="label label--ink">ASESMEN ULANG</div>
+            <h2 className="section-title">Asesmen ulang</h2>
             <div style={{ marginTop: 12 }}>
               {data.retake.allowed ? (
                 <Link className="btn" to="/assessment">
@@ -92,7 +98,7 @@ export default function Overview() {
       <section className="section">
         <div className="section__head">
           <h2>Jalur belajar kamu</h2>
-          <span className="label">{data.path_steps.reduce((a, s) => a + s.module_count, 0)} MODULES</span>
+          <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>{data.path_steps.reduce((a, s) => a + s.module_count, 0)} modul</span>
         </div>
         {data.path_steps.map((s, i) => (
           <div key={s.title} style={{ borderTop: '1px solid var(--rule)', padding: '16px 0', display: 'grid', gridTemplateColumns: '40px 1fr 90px', gap: 16 }}>

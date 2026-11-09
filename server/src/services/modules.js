@@ -132,6 +132,14 @@ export async function submitQuizAttempt(userId, moduleId, answers, now = new Dat
   if (!mod) throw new HttpError(404, 'unknown_module');
   if (!mod.quiz?.length) throw new HttpError(404, 'no_quiz');
   if (await isLocked(userId, mod)) throw new HttpError(403, 'module_locked');
+  // The quiz lives on its own page, reachable only after the material page has
+  // been opened (that page calls startModule, which writes the progress row).
+  // Enforced here too: a rule the document states but only the client applies
+  // is not a rule. The admin (dev/demo) bypasses it like every other gate.
+  if (!(await isAdmin(userId))) {
+    const started = await Progress.exists({ user_id: userId, module_id: mod._id });
+    if (!started) throw new HttpError(409, 'module_not_started');
+  }
   const grade = gradeQuiz(mod.quiz, answers);
   if (!grade) throw new HttpError(400, 'incomplete_answers');
 
