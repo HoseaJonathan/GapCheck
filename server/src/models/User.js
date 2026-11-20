@@ -3,8 +3,9 @@ import mongoose from 'mongoose';
 // acceptance_rate is deliberately absent: it is derived from submissions, so storing it would go stale.
 const userSchema = new mongoose.Schema(
   {
-    username: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
+    username: { type: String, required: true, unique: true, trim: true },
+    // Stored lowercased so Hosea@x and hosea@x cannot become two accounts.
+    email: { type: String, required: true, unique: true, trim: true, lowercase: true },
     password_hash: { type: String, required: true },
     // null = has not finished a diagnostic yet; Mongoose needs null listed explicitly in an enum.
     level: { type: String, enum: [null, 'new', 'beginner', 'intermediate'], default: null },

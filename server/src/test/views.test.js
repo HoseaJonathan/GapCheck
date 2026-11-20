@@ -1,15 +1,14 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 
-import { JWT_SECRET } from '../config.js';
 import AssessmentSession from '../models/AssessmentSession.js';
 import LearningPath from '../models/LearningPath.js';
 import Module from '../models/Module.js';
 import Question from '../models/Question.js';
 import User from '../models/User.js';
+import { createSession } from '../services/tokens.js';
 import { seed } from '../seed/seed.js';
 import { questions as bank } from '../seed/data/questions.js';
 import { setupTestDb, login } from './helpers.js';
@@ -31,7 +30,7 @@ const FIRST_DIAGNOSTIC = { allowed: true, kind: 'diagnostic', reason: null };
 /** A throwaway user signed in by token, so these cases never touch hosea or nadia. */
 async function tempUser(name, level) {
   const user = await User.create({ username: name, email: `${name}@gapcheck.test`, password_hash: 'x', level });
-  return { user, token: jwt.sign({ sub: String(user._id), username: name }, JWT_SECRET) };
+  return { user, token: (await createSession(user._id)).accessToken };
 }
 
 describe('result, progress and overview computed from the database', () => {

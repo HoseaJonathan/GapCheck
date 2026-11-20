@@ -29,10 +29,13 @@ bagian [Menjalankan](#menjalankan) di bawah.
    ```bash
    cd server
    copy .env.example .env
+   node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
    npm install
    npm run seed
    npm run dev
    ```
+   Salin keluaran perintah `node -e ...` ke baris `JWT_SECRET=` di `server/.env`
+   sebelum `npm run dev`. Server menolak jalan tanpa secret minimal 32 karakter.
 4. Terminal ketiga, dari folder `GapCheck`:
    ```bash
    cd client
@@ -104,8 +107,12 @@ npm run seed
 npm run dev
 ```
 
-`copy` untuk PowerShell/CMD; di Git Bash pakai `cp .env.example .env`. Server
-siap kalau muncul `API on http://localhost:4000`. Biarkan terminal ini terbuka.
+`copy` untuk PowerShell/CMD; di Git Bash pakai `cp .env.example .env`. Sebelum
+`npm run dev`, isi `JWT_SECRET` di `server/.env` dengan keluaran
+`node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`
+— server berhenti dengan pesan galat kalau secret kosong atau kurang dari 32
+karakter. Server siap kalau muncul `API on http://localhost:4000`. Biarkan
+terminal ini terbuka.
 
 **4. Jalankan klien** (terminal 3, dari folder root repo)
 
@@ -115,7 +122,8 @@ npm install
 npm run dev
 ```
 
-Buka **http://localhost:5173**. Klien meneruskan `/api/*` ke server di port
+Buka **http://localhost:5173** — halaman depan publik; masuk lewat `/login` atau
+buat akun di `/register`. Klien meneruskan `/api/*` ke server di port
 4000, jadi server dari langkah 3 harus tetap jalan.
 
 ### Hari berikutnya
@@ -202,6 +210,57 @@ setelah dinyalakan.
   otomatis, lalu menggantikan hasil kanonik di Result, Progress, dan Overview.
   Untuk mendemokan asesmen, pakai akun nadia.
 
+## Autentikasi
+
+Token tidak pernah disimpan di `localStorage` dan tidak pernah muncul di body
+respons. Server menyimpannya di dua cookie `httpOnly` + `SameSite=Strict`
+(`Secure` saat `NODE_ENV=production`), sehingga skrip di halaman tidak bisa
+membacanya.
+
+| Cookie       | Isi                                                           | Umur     | Path        |
+| ------------ | ------------------------------------------------------------- | -------- | ----------- |
+| `gc_access`  | JWT HS256: `sub` (user), `sid` (sesi), `iss`, `aud`, `exp`    | 15 menit | `/`         |
+| `gc_refresh` | token acak 256-bit; di DB hanya disimpan hash SHA-256-nya     | 7 hari   | `/api/auth` |
+
+| Endpoint              | Perilaku |
+| --------------------- | -------- |
+| `POST /auth/register` | validasi (username 3–30, email, password 8–72 byte), bcrypt cost 12, 201 `{ user_id }`; 409 `email_taken` / `username_taken`; 400 `validation_failed` + `details` per field |
+| `POST /auth/login`    | set kedua cookie, 200 `{ user }`; 400 `missing_credentials`; 401 `bad_credentials` (sama untuk email tak dikenal dan password salah); 429 setelah 10 gagal per email+IP dalam 15 menit |
+| `POST /auth/refresh`  | rotasi refresh token; token lama yang dipakai ulang lebih dari 30 detik setelah rotasi mencabut seluruh sesi (`refresh_reused`) |
+| `POST /auth/logout`   | mencabut sesi di DB dan menghapus cookie; access token lama langsung ditolak (`session_revoked`); 204 |
+| `GET /me`             | profil publik pengguna yang sedang masuk |
+
+**Autentikasi vs otorisasi.** `requireAuth` hanya menetapkan siapa pemanggilnya
+(`req.user.sub`): tanda tangan, algoritma, `exp`, `iss`, `aud`, dan status sesi
+di koleksi `auth_sessions`. Apa yang boleh diakses ditentukan di setiap route
+dengan menyaring query memakai `req.user.sub` — tidak ada route yang menerima
+`user_id` dari klien, dan sesi asesmen milik orang lain dijawab 403. Semua route
+selain `/health` dan `/auth/*` wajib login, termasuk `GET /questions`.
+
+**CSRF.** Selain `SameSite=Strict`, request yang mengubah data dari `Origin`
+selain `CLIENT_ORIGIN` ditolak 403 `bad_origin`.
+
+**Klien.** `/` halaman depan publik, `/login` dan `/register` hanya untuk tamu
+(pengguna yang sudah masuk diarahkan ke `/overview`), semua layar lain wajib
+login. Saat access token kedaluwarsa, klien memanggil `/auth/refresh` sekali
+lalu mengulang request; kalau refresh gagal, pengguna dibawa ke `/login` dengan
+pesan sesi berakhir dan dikembalikan ke halaman semula setelah masuk.
+
+### Variabel lingkungan (`server/.env`)
+
+| Variabel            | Wajib | Keterangan |
+| ------------------- | ----- | ---------- |
+| `JWT_SECRET`        | ya    | minimal 32 karakter, tanpa nilai bawaan; server tidak mau jalan tanpanya |
+| `MONGODB_URI`       | tidak | bawaan `mongodb://localhost:27017/gapcheck` |
+| `CLIENT_ORIGIN`     | tidak | origin klien untuk CORS dan cek CSRF; bawaan `http://localhost:5173` |
+| `API_PUBLIC_PREFIX` | tidak | prefiks yang dilihat browser di depan path API (proxy Vite: `/api`); menentukan path cookie refresh |
+| `NODE_ENV`          | tidak | `production` menyalakan flag `Secure` pada cookie dan mematikan akun admin |
+| `PORT`              | tidak | bawaan `4000` |
+
+Mengganti `JWT_SECRET` membuat semua access token lama tidak sah; pengguna cukup
+login ulang. Tes (`npm test`) membuat secret acak sendiri per run lewat
+`src/test/setup-env.js`, jadi tidak ada secret yang ikut ter-commit.
+
 ## Data demo
 
 Bank soal berisi 15 soal (puzzle masih statis; keputusan A6 belum diambil).
@@ -252,7 +311,7 @@ docs/DECISIONS.md           kontradiksi mockup vs BAB 3 + usulan revisi tabel
 | -------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | 0 Scaffold           | sebagian — docker-compose baru berisi MongoDB; Judge0 belum ditambahkan                                          |
 | 1 Design token       | selesai                                                                                                           |
-| 2 Auth               | selesai (MongoDB) — JWT + bcrypt                                                                                 |
+| 2 Auth               | selesai — bcrypt, access JWT 15 menit + refresh token berotasi di cookie httpOnly, logout mencabut sesi (lihat [Autentikasi](#autentikasi)) |
 | 3 Question bank      | selesai — model Mongoose, 15 soal                                                                                |
 | 4 Diagnostic session | selesai — sesi tersimpan, auto-expire                                                                            |
 | 5 Judge0             | **stub** — `fakeJudge0()` meniru bentuk respons Judge0                                                   |

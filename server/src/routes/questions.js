@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { SESSION_DURATION_SECONDS } from '../config.js';
 import { HttpError } from '../errors.js';
+import { requireAuth } from '../middleware/auth.js';
 import { listPublished, toSafeQuestion } from '../services/questions.js';
 
 const router = Router();
@@ -13,7 +14,8 @@ const VALID_DIFFICULTY = ['easy', 'medium', 'hard'];
  *   no parameter -> all published, valid value -> filtered,
  *   invalid value -> 400, and a rejected query never hangs the request.
  */
-router.get('/questions', async (req, res) => {
+// Behind auth: even without answers, the question bank should not be readable before a learner signs in.
+router.get('/questions', requireAuth, async (req, res) => {
   const { difficulty } = req.query;
 
   if (difficulty !== undefined && !VALID_DIFFICULTY.includes(difficulty)) {

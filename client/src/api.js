@@ -1,51 +1,86 @@
 import { useEffect, useState } from 'react';
 
 const BASE = '/api';
-const TOKEN_KEY = 'gc_token';
-const USER_KEY = 'gc_user';
 
-let token = localStorage.getItem(TOKEN_KEY) || null;
+/*
+ * Tokens live only in httpOnly cookies the server sets; this file never sees them,
+ * so nothing an injected script reads from the page can be replayed as a login.
+ * The signed-in user's public profile is kept in memory and re-read from /me on load.
+ */
+let currentUser = null;
+const listeners = new Set();
 
-function readUser() {
-  try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch { return null; }
+// Earlier builds kept the JWT in localStorage; drop any copy left behind.
+try {
+  localStorage.removeItem('gc_token');
+  localStorage.removeItem('gc_user');
+} catch { /* storage blocked: nothing to clean */ }
+
+/** reason says why the user changed: 'login', 'logout', 'restore', 'expired' or 'update'. */
+function setUser(user, reason) {
+  currentUser = user;
+  listeners.forEach((fn) => fn(user, reason));
 }
 
-function clearSession() {
-  token = null;
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
+async function send(path, options) {
+  return fetch(BASE + path, {
+    ...options,
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json', ...options.headers },
+  });
+}
+
+// One refresh at a time: screens that fire several requests together share it,
+// so a rotated refresh token is never presented twice by the same tab.
+let refreshing = null;
+function refreshSession() {
+  refreshing ??= send('/auth/refresh', { method: 'POST' })
+    .then((res) => res.ok)
+    .catch(() => false)
+    .finally(() => { refreshing = null; });
+  return refreshing;
 }
 
 async function request(path, options = {}) {
-  const res = await fetch(BASE + path, {
-    ...options,
-    headers: {
-      'content-type': 'application/json',
-      ...(token ? { authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
-  // An expired or invalid token on a protected route ends the session.
-  // The login call itself returns 401 for bad credentials, so it is excluded.
-  if (res.status === 401 && path !== '/auth/login') {
-    clearSession();
-    window.location.assign('/login');
+  let res = await send(path, options);
+  // The access token lasts 15 minutes; on a 401 try one refresh, then the original call again.
+  // /auth/* answers its own 401s (bad password, dead refresh token), so those are not retried.
+  if (res.status === 401 && !path.startsWith('/auth/')) {
+    if (await refreshSession()) res = await send(path, options);
+    // Still 401: the session is over (logged out elsewhere, revoked, or past 7 days).
+    if (res.status === 401 && currentUser) setUser(null, 'expired');
   }
   if (!res.ok) throw Object.assign(new Error(`${res.status}`), { status: res.status, body: await res.json().catch(() => ({})) });
-  return res.json();
+  return res.status === 204 ? null : res.json();
 }
 
 export const api = {
-  get hasToken() { return Boolean(token); },
-  get user() { return readUser(); },
+  /** Public profile of the signed-in user, or null. Filled by restoreSession() before protected screens render. */
+  get user() { return currentUser; },
+  /** Calls fn(user, reason) whenever the session starts or ends; returns the unsubscribe function. */
+  onUserChange(fn) {
+    listeners.add(fn);
+    return () => listeners.delete(fn);
+  },
+  /** On page load: asks the server who the cookies belong to. Resolves to the user or null. */
+  async restoreSession() {
+    try {
+      setUser(await request('/me'), 'restore');
+    } catch {
+      setUser(null, 'restore');
+    }
+    return currentUser;
+  },
   async login(email, password) {
     const data = await request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-    token = data.token;
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    setUser(data.user, 'login');
     return data.user;
   },
-  logout: clearSession,
+  register: (payload) => request('/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
+  async logout() {
+    // The server revokes the session and clears the cookies; the local state ends even if it is unreachable.
+    try { await request('/auth/logout', { method: 'POST' }); } finally { setUser(null, 'logout'); }
+  },
   overview: () => request('/overview'),
   progress: () => request('/progress'),
   result: () => request('/result'),
@@ -64,7 +99,7 @@ export const api = {
   /** Admin (dev/demo) only: moves the admin to another level's learning path. */
   async setAdminLevel(level) {
     const data = await request('/admin/level', { method: 'PATCH', body: JSON.stringify({ level }) });
-    localStorage.setItem(USER_KEY, JSON.stringify({ ...readUser(), level: data.level }));
+    setUser({ ...currentUser, level: data.level }, 'update');
     return data;
   },
 };

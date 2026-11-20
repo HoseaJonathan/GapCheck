@@ -42,7 +42,7 @@ export default function Assessment() {
     return (
       <div className="page">
         <p>{error.body.retake?.reason}</p>
-        <div style={{ marginTop: 16 }}><Link to="/">Kembali ke Overview</Link></div>
+        <div style={{ marginTop: 16 }}><Link to="/overview">Kembali ke Overview</Link></div>
       </div>
     );
   }
@@ -83,7 +83,7 @@ export default function Assessment() {
           ))}
         </div>
         <span className="mono" style={{ marginLeft: 'auto' }}>{left === null ? "--:--" : mmss(left)}</span>
-        <Link className="btn btn--ghost" to="/">Save and exit</Link>
+        <Link className="btn btn--ghost" to="/overview">Save and exit</Link>
       </header>
 
       <div className="assess__body">

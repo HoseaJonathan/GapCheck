@@ -1,9 +1,11 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import mongoose from 'mongoose';
 
 import { CLIENT_ORIGIN } from './config.js';
+import { checkOrigin } from './middleware/auth.js';
 import { errorHandler } from './middleware/errors.js';
 import authRoutes from './routes/auth.js';
 import questionRoutes from './routes/questions.js';
@@ -21,7 +23,10 @@ export function createApp() {
   const app = express();
 
   app.use(helmet());
-  app.use(cors({ origin: CLIENT_ORIGIN }));
+  // credentials: the browser only sends the auth cookies cross-origin to an allowed origin.
+  app.use(cors({ origin: CLIENT_ORIGIN, credentials: true }));
+  app.use(cookieParser());
+  app.use(checkOrigin);
   app.use(express.json({ limit: '1mb' }));
 
   app.get('/health', (req, res) =>
