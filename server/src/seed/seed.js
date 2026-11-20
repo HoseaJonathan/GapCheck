@@ -1,5 +1,7 @@
 import bcrypt from 'bcryptjs';
 
+import { BCRYPT_ROUNDS } from '../config.js';
+import AuthSession from '../models/AuthSession.js';
 import User from '../models/User.js';
 import Question from '../models/Question.js';
 import AssessmentSession from '../models/AssessmentSession.js';
@@ -17,7 +19,8 @@ import {
   PASSWORD, users as userData, historySnapshots, canonicalRuns, CANONICAL_START, CANONICAL_FINISH,
 } from './data/users.js';
 
-const MODELS = [User, Question, AssessmentSession, Submission, LearningPath, Module, Progress, QuizAttempt];
+// AuthSession is wiped too: reseeding gives users new ids, so old sessions point at nobody.
+const MODELS = [AuthSession, User, Question, AssessmentSession, Submission, LearningPath, Module, Progress, QuizAttempt];
 const POSSIBLE_TOTAL = questionData.reduce((sum, q) => sum + POINTS[q.difficulty], 0);
 
 /** Seed wipes every collection, so it must never run against a production database. */
@@ -73,7 +76,7 @@ export async function seed() {
   // init() so the unique and partial indexes exist before the first insert, even in a fresh database.
   await Promise.all(MODELS.map((m) => m.init()));
 
-  const password_hash = await bcrypt.hash(PASSWORD, 10);
+  const password_hash = await bcrypt.hash(PASSWORD, BCRYPT_ROUNDS);
   const hosea = await User.create({ ...userData.hosea, password_hash });
   const nadia = await User.create({ ...userData.nadia, password_hash });
   const admin = await User.create({ ...userData.admin, password_hash });

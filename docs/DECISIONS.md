@@ -485,3 +485,47 @@ Belum ada di mockup Figma maupun BAB 3; keduanya perlu ditambahkan.
   penyerta baru selesai di layar belajar: Modules, Path Overview, Module, dan
   Overview. Progress, Result, Puzzle, Login, dan Assessment masih memakai label
   kapital lama dan menyusul di tahap berikutnya.
+
+## H. Autentikasi JWT: perubahan terhadap diagram BAB 3
+
+**Sudah diterapkan di branch `feature/jwt-auth`; dokumen perlu menyusul.**
+
+- **Apa yang berubah.** Diagram sekuens login di BAB 3 berakhir pada *sign JWT*
+  yang dikembalikan ke klien. Implementasi sekarang mengirim token lewat cookie
+  `httpOnly`, bukan body respons, dan menambah tiga langkah yang belum ada di
+  diagram: `POST /auth/refresh` (rotasi refresh token), `POST /auth/logout`
+  (pencabutan sesi), dan pemeriksaan status sesi di setiap request terproteksi.
+- **Alasannya.** Token di `localStorage` dapat dibaca skrip apa pun yang berjalan
+  di halaman (XSS). Access token berumur pendek (15 menit) membatasi kerugian bila
+  token bocor, refresh token yang berotasi membuat pencurian terdeteksi, dan
+  logout benar-benar mengakhiri sesi alih-alih menunggu JWT kedaluwarsa.
+- **Akibatnya untuk dokumen.** (1) Diagram sekuens login diperbarui: respons
+  login berisi `Set-Cookie`. (2) Diagram aktivitas autentikasi ditambah cabang
+  *token kedaluwarsa → refresh → ulangi request* dan *refresh gagal → halaman
+  login*. (3) Tabel basis data ditambah `auth_sessions` (C9). (4) Matriks black
+  box fase 10 memuat kasus pada `server/src/test/auth.test.js`: registrasi
+  berhasil, email/username ganda, batas panjang password 7/8/72/73 byte, login
+  berhasil, password salah, kredensial kosong, JWT tidak sah, JWT kedaluwarsa,
+  `alg=none`, audience/issuer lain, akses tanpa token, akses sesi milik pengguna
+  lain, logout, dan pemakaian ulang refresh token.
+- **Yang belum diputuskan.** Respons `409 email_taken` pada registrasi memberi
+  tahu bahwa sebuah email sudah terdaftar. Ini diminta spesifikasi (pesan email
+  ganda) dan lazim, tetapi berlawanan dengan prinsip login yang tidak membocorkan
+  keberadaan akun. Alternatifnya adalah verifikasi email, yang di luar scope.
+
+### C9. Tabel baru `auth_sessions`
+
+| Nama Field | Tipe Data | Keterangan |
+|---|---|---|
+| `_id` | ObjectId | Kunci utama sesi; disalin ke klaim `sid` pada access token. |
+| `user_id` | ObjectId | Referensi ke `users`. |
+| `refresh_hash` | String | Hash SHA-256 refresh token yang berlaku (unik). Token aslinya tidak pernah disimpan. |
+| `previous_refresh_hash` | String | Hash refresh token sebelum rotasi terakhir, untuk mendeteksi pemakaian ulang. |
+| `rotated_at` | Date | Waktu rotasi terakhir. |
+| `expires_at` | Date | Batas umur refresh token (7 hari); indeks TTL menghapus baris setelahnya. |
+| `revoked_at` | Date | Waktu sesi dicabut; `null` selama sesi aktif. |
+| `revoked_reason` | String | `logout` atau `refresh_reuse`. |
+| `created_at`, `updated_at` | Date | Stempel waktu otomatis. |
+
+Pada tabel `users`, `username` kini unik (sesuai rancangan semula) dan `email`
+disimpan dalam huruf kecil.

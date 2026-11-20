@@ -434,6 +434,12 @@ a.step-module:hover .step-module__title { color: var(--green); }
 .input::placeholder { color: var(--ink-muted); }
 .input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
 .login-bands { align-items: flex-start; }
+.auth-page { max-width: 440px; margin: 0 auto; }
+/* A link styled as a full-width button centres its text like a <button> does. */
+.stack > a.btn { text-align: center; text-decoration: none; }
+.auth-page .stack, .auth-page .callout { margin-top: var(--space-5); }
+.field__error { font-size: var(--text-sm); color: var(--amber); }
+.input[aria-invalid="true"] { border-color: var(--amber); }
 .btn--link { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; color: var(--green); }
 
 /* ---- assessment (replaces the shell) ---- */

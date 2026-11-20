@@ -95,7 +95,7 @@ export default function Result() {
             <span className="mono faint" style={{ textAlign: 'right' }}>{s.module_count} mod</span>
           </div>
         ))}
-        <div style={{ marginTop: 20 }}><Link className="btn" to="/">Mulai belajar</Link></div>
+        <div style={{ marginTop: 20 }}><Link className="btn" to="/overview">Mulai belajar</Link></div>
       </section>
     </div>
   );

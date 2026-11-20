@@ -1,8 +1,9 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useApi, api } from '../api.js';
+import { useAuth } from '../auth.jsx';
 
 const NAV = [
-  { to: '/', label: 'Overview', end: true },
+  { to: '/overview', label: 'Overview' },
   { to: '/modules', label: 'Modules' },
   { to: '/progress', label: 'Progress' },
   { to: '/puzzle', label: 'Puzzle' },
@@ -13,7 +14,7 @@ const NAV = [
 function AdminLevel({ level }) {
   const change = async (e) => {
     await api.setAdminLevel(e.target.value);
-    window.location.assign('/');
+    window.location.assign('/overview');
   };
   return (
     <label className="chip" title="Admin: pilih jalur belajar" style={{ display: 'inline-flex', gap: 4, alignItems: 'center', whiteSpace: 'nowrap' }}>
@@ -32,10 +33,11 @@ export default function Shell() {
   const { data } = useApi(() => api.overview(), []);
   const streak = data?.puzzle?.streak_days ?? 0;
   const navigate = useNavigate();
-  const initials = api.user?.profile?.initials ?? '··';
+  const { user } = useAuth();
+  const initials = user?.profile?.initials ?? '··';
 
-  function logout() {
-    api.logout();
+  async function logout() {
+    await api.logout().catch(() => {});
     navigate('/login', { replace: true });
   }
 
@@ -53,8 +55,8 @@ export default function Shell() {
             ))}
           </nav>
           <div className="search"><span>Search</span><kbd>⌘K</kbd></div>
-          {api.user?.is_admin ? <AdminLevel level={data?.level ?? api.user.level} /> : <span className="chip">{streak}-DAY STREAK</span>}
-          <div className="avatar" title={api.user?.email}>{initials}</div>
+          {user?.is_admin ? <AdminLevel level={data?.level ?? user.level} /> : <span className="chip">{streak}-DAY STREAK</span>}
+          <div className="avatar" title={user?.email}>{initials}</div>
           <button type="button" className="btn--link label" onClick={logout}>KELUAR</button>
         </div>
       </header>
